@@ -75,7 +75,7 @@ const AdminPanel = () => {
   if (!isAuthenticated) return <Navigate to="/admin" />
 
   return (
-    <div className="max-w-5xl mx-auto mt-10 p-6 bg-white rounded-xl shadow">
+    <div className="max-w-6xl mx-auto mt-10 p-6 bg-white rounded-xl shadow">
       <h2 className="text-2xl font-bold mb-4">Respuestas del cuestionario</h2>
       {respuestas.length === 0 ? (
         <p className="text-gray-500">No hay respuestas registradas aún.</p>
@@ -128,4 +128,3 @@ const AdminPanel = () => {
 }
 
 export default AdminPanel
-
