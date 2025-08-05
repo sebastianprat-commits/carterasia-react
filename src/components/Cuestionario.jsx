@@ -17,27 +17,29 @@ function Cuestionario() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    try {
-      await addDoc(collection(db, 'cuestionarios'), {
-        ...formData,
-        timestamp: Timestamp.now()
-      })
-      alert('Respuestas enviadas correctamente')
-      setFormData({
-        edad: '',
-        experiencia: '',
-        formacion: '',
-        horizonte: '',
-        objetivo: '',
-        riesgo: ''
-      })
-    } catch (error) {
-      console.error("Error al guardar en Firestore:", error)
-      alert("Error al guardar los datos")
-    }
+ const handleSubmit = async (e) => {
+  e.preventDefault()
+  console.log("Datos a guardar:", formData)  // 👈 ESTA LÍNEA NUEVA
+
+  try {
+    await addDoc(collection(db, 'cuestionarios'), {
+      ...formData,
+      timestamp: Timestamp.now()
+    })
+    alert('Gracias por tus respuestas. Generaremos tu cartera personalizada pronto.')
+    setFormData({
+      edad: '',
+      experiencia: '',
+      formacion: '',
+      horizonte: '',
+      objetivo: '',
+      riesgo: ''
+    })
+  } catch (error) {
+    console.error("Error al guardar en Firestore:", error)
+    alert("Error al guardar los datos")
   }
+}
 
   return (
     <form onSubmit={handleSubmit} className="max-w-xl mx-auto p-4 bg-white shadow rounded">
