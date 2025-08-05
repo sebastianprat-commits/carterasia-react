@@ -7,10 +7,15 @@ const AdminPanel = () => {
 
   useEffect(() => {
     async function fetchData() {
+    try {
       const snapshot = await getDocs(collection(db, "cuestionarios"))
       const data = snapshot.docs.map((doc) => doc.data())
+      console.log("Datos recibidos desde Firestore:", data) // <- Añadido
       setRespuestas(data)
+    } catch (error) {
+      console.error("Error al obtener datos de Firestore:", error) // <- Añadido
     }
+  }
     fetchData()
   }, [])
 
