@@ -5,12 +5,12 @@ import { useAuth } from '../AuthContext'
 function AdminLogin() {
   const [password, setPassword] = useState('')
   const navigate = useNavigate()
-  const { setIsAuthenticated } = useAuth()
+  const { login } = useAuth()
 
   const handleSubmit = (e) => {
     e.preventDefault()
     if (password === 'carteras2025') {
-      setIsAuthenticated(true)
+      login()
       navigate('/admin/panel')
     } else {
       alert('Contraseña incorrecta')
@@ -28,12 +28,19 @@ function AdminLogin() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">
+        <button
+          type="submit"
+          className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
+        >
           Entrar
         </button>
       </form>
     </div>
   )
+}
+
+export default AdminLogin
+
 }
 
 export default AdminLogin
