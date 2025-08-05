@@ -3,6 +3,7 @@ import { collection, getDocs } from 'firebase/firestore'
 import { db } from '../firebaseConfig'
 import { useAuth } from '../AuthContext'
 import { Navigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 const AdminPanel = () => {
   const { isAuthenticated } = useAuth()
