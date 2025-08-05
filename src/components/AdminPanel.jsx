@@ -2,11 +2,10 @@ import React, { useEffect, useState } from 'react'
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '../firebaseConfig'
 import { useAuth } from '../AuthContext'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { useNavigate, Navigate } from 'react-router-dom'
 
 const calcularPerfil = (respuestas) => {
   let score = 0
-
   const edad = parseInt(respuestas.edad)
   if (edad < 40) score += 2
   else if (edad < 60) score += 1
@@ -16,19 +15,19 @@ const calcularPerfil = (respuestas) => {
   score += map[respuestas.formacion?.toLowerCase()] || 0
 
   const horizonte = respuestas.horizonte?.toLowerCase()
-  if (horizonte.includes("corto")) score += 0
-  else if (horizonte.includes("medio")) score += 1
-  else if (horizonte.includes("largo")) score += 2
+  if (horizonte.includes('corto')) score += 0
+  else if (horizonte.includes('medio')) score += 1
+  else if (horizonte.includes('largo')) score += 2
 
   const objetivo = respuestas.objetivo?.toLowerCase()
-  if (objetivo.includes("conservar")) score += 0
-  else if (objetivo.includes("poco")) score += 1
-  else if (objetivo.includes("mucho")) score += 2
+  if (objetivo.includes('conservar')) score += 0
+  else if (objetivo.includes('poco')) score += 1
+  else if (objetivo.includes('mucho')) score += 2
 
   const riesgo = respuestas.riesgo?.toLowerCase()
-  if (riesgo.includes("ninguno")) score += 0
-  else if (riesgo.includes("poco")) score += 1
-  else if (riesgo.includes("mucho")) score += 2
+  if (riesgo.includes('ninguno')) score += 0
+  else if (riesgo.includes('poco')) score += 1
+  else if (riesgo.includes('mucho')) score += 2
 
   if (score <= 4) return 'conservador'
   if (score <= 8) return 'moderado'
@@ -75,15 +74,17 @@ const AdminPanel = () => {
 
   if (!isAuthenticated) return <Navigate to="/admin" />
 
+  const handleLogout = () => {
+    logout()
+    navigate('/admin')
+  }
+
   return (
     <div className="max-w-6xl mx-auto mt-10 p-6 bg-white rounded-xl shadow">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">Respuestas del cuestionario</h2>
         <button
-          onClick={() => {
-            logout()
-            navigate('/admin')
-          }}
+          onClick={handleLogout}
           className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
         >
           Cerrar sesión
@@ -137,6 +138,11 @@ const AdminPanel = () => {
         </table>
       )}
     </div>
+  )
+}
+
+export default AdminPanel
+
   )
 }
 
