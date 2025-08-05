@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useLocation, Link } from 'react-router-dom'
 
 const obtenerCartera = (perfil) => {
@@ -18,13 +19,25 @@ const obtenerCartera = (perfil) => {
       'Vanguard Emerging Markets (VFEM)'
     ]
   }
-
   return carteras[perfil] || []
 }
 
 const CarteraPersonalizada = () => {
   const location = useLocation()
-  const perfil = location.state?.perfil
+  const [perfil, setPerfil] = useState(null)
+
+  useEffect(() => {
+    const perfilEnState = location.state?.perfil
+    if (perfilEnState) {
+      setPerfil(perfilEnState)
+      localStorage.setItem('perfilUsuario', perfilEnState) // guarda
+    } else {
+      const perfilGuardado = localStorage.getItem('perfilUsuario')
+      if (perfilGuardado) {
+        setPerfil(perfilGuardado)
+      }
+    }
+  }, [location.state])
 
   if (!perfil) {
     return (
@@ -61,3 +74,4 @@ const CarteraPersonalizada = () => {
 }
 
 export default CarteraPersonalizada
+
