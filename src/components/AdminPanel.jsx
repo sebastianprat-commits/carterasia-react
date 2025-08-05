@@ -8,24 +8,26 @@ const calcularPerfil = (respuestas) => {
   let score = 0
 
   const edad = parseInt(respuestas.edad)
-  if (edad < 40) score += 2
-  else if (edad < 60) score += 1
+  if (!isNaN(edad)) {
+    if (edad < 40) score += 2
+    else if (edad < 60) score += 1
+  }
 
   const map = { nada: 0, poca: 1, mucha: 2 }
-  score += map[respuestas.experiencia?.toLowerCase()] || 0
-  score += map[respuestas.formacion?.toLowerCase()] || 0
+  score += map[respuestas.experiencia?.toLowerCase?.()] || 0
+  score += map[respuestas.formacion?.toLowerCase?.()] || 0
 
-  const horizonte = respuestas.horizonte?.toLowerCase()
+  const horizonte = respuestas.horizonte?.toLowerCase?.() || ""
   if (horizonte.includes("corto")) score += 0
   else if (horizonte.includes("medio")) score += 1
   else if (horizonte.includes("largo")) score += 2
 
-  const objetivo = respuestas.objetivo?.toLowerCase()
+  const objetivo = respuestas.objetivo?.toLowerCase?.() || ""
   if (objetivo.includes("conservar")) score += 0
   else if (objetivo.includes("poco")) score += 1
   else if (objetivo.includes("mucho")) score += 2
 
-  const riesgo = respuestas.riesgo?.toLowerCase()
+  const riesgo = respuestas.riesgo?.toLowerCase?.() || ""
   if (riesgo.includes("ninguno")) score += 0
   else if (riesgo.includes("poco")) score += 1
   else if (riesgo.includes("mucho")) score += 2
