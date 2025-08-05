@@ -62,6 +62,7 @@ function Cuestionario() {
         timestamp: Timestamp.now()
       })
       console.log(perfil)
+      localStorage.setItem('perfilUsuario', perfil)
       navigate('/cartera', { state: { perfil } }) // 👈 redirección correcta
 
     } catch (error) {
