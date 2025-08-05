@@ -29,6 +29,8 @@ function App() {
             <Route path="/contacto" element={<Contacto />} />
             <Route path="/admin" element={<AdminLogin />} />
             <Route path="/admin/panel" element={<AdminPanel />} />
+            <Route path="/cartera" element={<CarteraPersonalizada />} />
+
           </Routes>
         </main>
       </div>
