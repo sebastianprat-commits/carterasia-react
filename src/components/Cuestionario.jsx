@@ -61,7 +61,7 @@ function Cuestionario() {
         perfil,
         timestamp: Timestamp.now()
       })
-
+      console.log(perfil)
       navigate('/cartera', { state: { perfil } }) // 👈 redirección correcta
 
     } catch (error) {
