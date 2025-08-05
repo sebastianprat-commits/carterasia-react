@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { db } from '../firebaseConfig'
 import { collection, addDoc, Timestamp } from 'firebase/firestore'
+import { useNavigate } from 'react-router-dom'
+
+const navigate = useNavigate()
 
 function Cuestionario() {
   const [formData, setFormData] = useState({
@@ -20,6 +23,8 @@ function Cuestionario() {
  const handleSubmit = async (e) => {
   e.preventDefault()
   console.log("Datos a guardar:", formData)  // 👈 ESTA LÍNEA NUEVA
+   navigate('/cartera', { state: formData })
+
 
   try {
   console.log("Datos que se van a guardar en Firestore:", {
