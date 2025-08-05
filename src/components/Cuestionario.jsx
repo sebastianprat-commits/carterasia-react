@@ -51,10 +51,10 @@ function Cuestionario() {
   }
 }
 
-  return (
+    return (
     <form onSubmit={handleSubmit} className="max-w-xl mx-auto p-4 bg-white shadow rounded">
       <h2 className="text-xl font-bold mb-4">Simulador de Perfil Inversor</h2>
-      
+
       <label className="block mb-2">
         Edad:
         <input type="number" name="edad" value={formData.edad} onChange={handleChange} className="w-full border p-2 rounded" />
@@ -90,7 +90,6 @@ function Cuestionario() {
       </button>
     </form>
   )
-}
 
 export default Cuestionario
 
