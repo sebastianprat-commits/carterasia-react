@@ -57,6 +57,7 @@ const obtenerCartera = (perfil) => {
 }
 
 const AdminPanel = () => {
+  const { logout } = useAuth()
   const { isAuthenticated, logout } = useAuth()
 
   const [respuestas, setRespuestas] = useState([])
@@ -78,6 +79,14 @@ const AdminPanel = () => {
   return (
     <div className="max-w-6xl mx-auto mt-10 p-6 bg-white rounded-xl shadow">
      <div className="flex justify-between items-center mb-4">
+       <div className="flex justify-end mb-4">
+  <button
+    onClick={logout}
+    className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+  >
+    Cerrar sesión
+  </button>
+</div>
   <h2 className="text-2xl font-bold">Respuestas del cuestionario</h2>
   <button
     onClick={() => logout()}
