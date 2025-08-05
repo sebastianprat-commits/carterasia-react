@@ -90,6 +90,6 @@ function Cuestionario() {
       </button>
     </form>
   )
+}
 
 export default Cuestionario
-
