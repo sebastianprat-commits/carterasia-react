@@ -4,6 +4,8 @@ import Contacto from './components/Contacto'
 import Formacion from './components/Formacion'
 import AdminLogin from './components/AdminLogin'
 import AdminPanel from './components/AdminPanel'
+import CarteraPersonalizada from './components/CarteraPersonalizada'
+
 
 function App() {
   return (
