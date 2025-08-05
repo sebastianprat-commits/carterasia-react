@@ -22,10 +22,15 @@ function Cuestionario() {
   console.log("Datos a guardar:", formData)  // 👈 ESTA LÍNEA NUEVA
 
   try {
-    await addDoc(collection(db, 'cuestionarios'), {
-      ...formData,
-      timestamp: Timestamp.now()
-    })
+  console.log("Datos que se van a guardar en Firestore:", {
+    ...formData,
+    timestamp: Timestamp.now()
+  })
+
+  await addDoc(collection(db, 'cuestionarios'), {
+    ...formData,
+    timestamp: Timestamp.now()
+  })
     alert('Gracias por tus respuestas. Generaremos tu cartera personalizada pronto.')
     setFormData({
       edad: '',
