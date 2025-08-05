@@ -11,7 +11,10 @@ const AdminPanel = () => {
   useEffect(() => {
     async function fetchData() {
       const snapshot = await getDocs(collection(db, 'cuestionarios'))
-      const data = snapshot.docs.map((doc) => doc.data())
+      const data = snapshot.docs.map((doc) => ({
+  id: doc.id,        // opcional, por si quieres usarlo
+  ...doc.data()      // aquí vienen los campos reales
+}))
       setRespuestas(data)
     }
     fetchData()
