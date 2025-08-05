@@ -1,28 +1,61 @@
-// src/components/CarteraPersonalizada.jsx
-import React from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, Link } from 'react-router-dom'
+
+const obtenerCartera = (perfil) => {
+  const carteras = {
+    conservador: [
+      'iShares Euro Government Bond 1-3yr (IBGL)',
+      'Vanguard Global Aggregate Bond (VAGF)',
+      'Amundi Cash EUR (AECE)'
+    ],
+    moderado: [
+      'iShares MSCI World (IWRD)',
+      'Vanguard Global Moderate Allocation (VMAA)',
+      'Xtrackers ESG EUR Corp Bond (XDCB)'
+    ],
+    dinámico: [
+      'ARK Innovation ETF (ARKK)',
+      'iShares NASDAQ 100 (CNDX)',
+      'Vanguard Emerging Markets (VFEM)'
+    ]
+  }
+
+  return carteras[perfil] || []
+}
 
 const CarteraPersonalizada = () => {
   const location = useLocation()
-  const datos = location.state || {}
+  const perfil = location.state?.perfil
+
+  if (!perfil) {
+    return (
+      <div className="max-w-xl mx-auto mt-10 p-4 bg-white shadow rounded text-center">
+        <h2 className="text-xl font-bold mb-4">No se ha podido determinar tu perfil</h2>
+        <p className="mb-4">Por favor, rellena el cuestionario para recibir tu cartera sugerida.</p>
+        <Link to="/simulador" className="text-blue-600 underline">
+          Volver al simulador
+        </Link>
+      </div>
+    )
+  }
+
+  const cartera = obtenerCartera(perfil)
 
   return (
-    <div className="max-w-xl mx-auto mt-10 p-6 bg-white shadow rounded">
-      <h2 className="text-2xl font-bold mb-4">Tu Cartera Personalizada</h2>
-      {Object.keys(datos).length === 0 ? (
-        <p className="text-gray-500">No se han recibido datos.</p>
-      ) : (
-        <ul className="space-y-2">
-          <li><strong>Edad:</strong> {datos.edad}</li>
-          <li><strong>Experiencia:</strong> {datos.experiencia}</li>
-          <li><strong>Formación:</strong> {datos.formacion}</li>
-          <li><strong>Horizonte temporal:</strong> {datos.horizonte}</li>
-          <li><strong>Objetivo:</strong> {datos.objetivo}</li>
-          <li><strong>Riesgo:</strong> {datos.riesgo}</li>
-        </ul>
-      )}
+    <div className="max-w-xl mx-auto mt-10 p-4 bg-white shadow rounded">
+      <h2 className="text-xl font-bold mb-4">Tu perfil inversor es: <span className="capitalize text-blue-600">{perfil}</span></h2>
 
-      {/* En el futuro aquí se puede mostrar una cartera real según perfil */}
+      <h3 className="text-lg font-semibold mb-2">Cartera sugerida:</h3>
+      <ul className="list-disc ml-6 text-gray-800">
+        {cartera.map((activo, i) => (
+          <li key={i}>{activo}</li>
+        ))}
+      </ul>
+
+      <div className="mt-6">
+        <Link to="/" className="text-blue-600 underline">
+          Volver al inicio
+        </Link>
+      </div>
     </div>
   )
 }
