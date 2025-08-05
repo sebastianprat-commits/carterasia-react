@@ -1,23 +1,25 @@
 import React, { useEffect, useState } from 'react'
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '../firebaseConfig'
+import { useAuth } from '../AuthContext'
+import { Navigate } from 'react-router-dom'
 
 const AdminPanel = () => {
+  const { isAuthenticated } = useAuth()
   const [respuestas, setRespuestas] = useState([])
 
   useEffect(() => {
     async function fetchData() {
-    try {
-      const snapshot = await getDocs(collection(db, "cuestionarios"))
+      const snapshot = await getDocs(collection(db, 'cuestionarios'))
       const data = snapshot.docs.map((doc) => doc.data())
-      console.log("Datos recibidos desde Firestore:", data) // <- Añadido
       setRespuestas(data)
-    } catch (error) {
-      console.error("Error al obtener datos de Firestore:", error) // <- Añadido
     }
-  }
     fetchData()
   }, [])
+
+  if (!isAuthenticated) {
+    return <Navigate to="/admin" />
+  }
 
   return (
     <div className="max-w-4xl mx-auto mt-10 p-6 bg-white rounded-xl shadow">
@@ -47,7 +49,7 @@ const AdminPanel = () => {
                 <td className="p-2">{r.objetivo}</td>
                 <td className="p-2">{r.riesgo}</td>
                 <td className="p-2">
-                  {r.timestamp?.toDate?.().toLocaleString?.() || ""}
+                  {r.timestamp?.toDate?.().toLocaleString?.() || ''}
                 </td>
               </tr>
             ))}
@@ -55,6 +57,11 @@ const AdminPanel = () => {
         </table>
       )}
     </div>
+  )
+}
+
+export default AdminPanel
+
   )
 }
 
