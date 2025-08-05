@@ -2,7 +2,8 @@ import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom'
 import Cuestionario from './components/Cuestionario'
 import Contacto from './components/Contacto'
 import Formacion from './components/Formacion'
-import AdminLogin from './components/AdminLogin' // ⬅️ NUEVO
+import AdminLogin from './components/AdminLogin' // 
+import AdminPanel from './components/AdminPanel' // 
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
             <Route path="/simulador" element={<Cuestionario />} />
             <Route path="/contacto" element={<Contacto />} />
             <Route path="/admin" element={<AdminLogin />} /> {/* ⬅️ NUEVO */}
+            <Route path="/admin/panel" element={<AdminPanel />} /> {/* Ruta protegida */}
           </Routes>
         </main>
       </div>
