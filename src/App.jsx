@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom'
 import Cuestionario from './components/Cuestionario'
 import Contacto from './components/Contacto'
 import Formacion from './components/Formacion'
+import AdminLogin from './components/AdminLogin' // ⬅️ NUEVO
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
             <Route path="/formacion" element={<Formacion />} />
             <Route path="/simulador" element={<Cuestionario />} />
             <Route path="/contacto" element={<Contacto />} />
+            <Route path="/admin" element={<AdminLogin />} /> {/* ⬅️ NUEVO */}
           </Routes>
         </main>
       </div>
