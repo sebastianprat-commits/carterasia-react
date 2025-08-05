@@ -1,37 +1,79 @@
 import { useState } from 'react'
+import { db } from '../firebaseConfig'
+import { collection, addDoc, Timestamp } from 'firebase/firestore'
 
 function Cuestionario() {
-  const [respuestas, setRespuestas] = useState({})
-  const preguntas = [
-    { id: 'edad', texto: '¿Cuál es tu edad?' },
-    { id: 'experiencia', texto: '¿Tienes experiencia previa invirtiendo?' },
-    { id: 'patrimonio', texto: '¿Cuál es tu patrimonio aproximado?' },
-    { id: 'disponible', texto: '¿Cuánto dinero tienes disponible para invertir?' },
-    { id: 'riesgo', texto: '¿Qué nivel de riesgo estás dispuesto a asumir?' },
-  ]
+  const [formData, setFormData] = useState({
+    edad: '',
+    experiencia: '',
+    formacion: '',
+    horizonte: '',
+    objetivo: '',
+    riesgo: ''
+  })
 
-  const manejarCambio = (id, valor) => {
-    setRespuestas({ ...respuestas, [id]: valor })
+  const handleChange = (e) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  const manejarEnvio = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    alert('Gracias por tus respuestas. Generaremos tu cartera personalizada pronto.')
+    try {
+      await addDoc(collection(db, 'cuestionarios'), {
+        ...formData,
+        timestamp: Timestamp.now()
+      })
+      alert('Respuestas enviadas correctamente')
+      setFormData({
+        edad: '',
+        experiencia: '',
+        formacion: '',
+        horizonte: '',
+        objetivo: '',
+        riesgo: ''
+      })
+    } catch (error) {
+      console.error("Error al guardar en Firestore:", error)
+      alert("Error al guardar los datos")
+    }
   }
 
   return (
-    <form onSubmit={manejarEnvio} className="space-y-4">
-      {preguntas.map((pregunta) => (
-        <div key={pregunta.id}>
-          <label className="block font-semibold">{pregunta.texto}</label>
-          <input
-            type="text"
-            className="border border-gray-300 rounded p-2 w-full"
-            onChange={(e) => manejarCambio(pregunta.id, e.target.value)}
-          />
-        </div>
-      ))}
-      <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
+    <form onSubmit={handleSubmit} className="max-w-xl mx-auto p-4 bg-white shadow rounded">
+      <h2 className="text-xl font-bold mb-4">Simulador de Perfil Inversor</h2>
+      
+      <label className="block mb-2">
+        Edad:
+        <input type="number" name="edad" value={formData.edad} onChange={handleChange} className="w-full border p-2 rounded" />
+      </label>
+
+      <label className="block mb-2">
+        Experiencia:
+        <input type="text" name="experiencia" value={formData.experiencia} onChange={handleChange} className="w-full border p-2 rounded" />
+      </label>
+
+      <label className="block mb-2">
+        Formación:
+        <input type="text" name="formacion" value={formData.formacion} onChange={handleChange} className="w-full border p-2 rounded" />
+      </label>
+
+      <label className="block mb-2">
+        Horizonte temporal:
+        <input type="text" name="horizonte" value={formData.horizonte} onChange={handleChange} className="w-full border p-2 rounded" />
+      </label>
+
+      <label className="block mb-2">
+        Objetivo:
+        <input type="text" name="objetivo" value={formData.objetivo} onChange={handleChange} className="w-full border p-2 rounded" />
+      </label>
+
+      <label className="block mb-4">
+        Riesgo asumido:
+        <input type="text" name="riesgo" value={formData.riesgo} onChange={handleChange} className="w-full border p-2 rounded" />
+      </label>
+
+      <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
         Enviar
       </button>
     </form>
@@ -39,3 +81,4 @@ function Cuestionario() {
 }
 
 export default Cuestionario
+
