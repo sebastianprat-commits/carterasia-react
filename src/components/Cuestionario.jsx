@@ -130,7 +130,7 @@ const base64Pdf = btoa(String.fromCharCode(...pdfBytes))
       const pdfBase64 = await generarPDF(perfil, cartera)
 
       // Envía el email
-      await emailjs.send('service_y1v48yw', 'y2-PNRI-wvGie9Qdb', {
+      await emailjs.send('service_y1v48yw', 'template_6us1g68', {
         to_email: formData.email,
         perfil_usuario: perfil,
         cartera_sugerida: cartera.join(', '),
