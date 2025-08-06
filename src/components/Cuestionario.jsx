@@ -76,74 +76,19 @@ function Cuestionario() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  // Función para generar el PDF
-  const generarPDF = async (perfil, cartera) => {
-    const pdfDoc = await PDFDocument.create()
-    const page = pdfDoc.addPage([600, 400])
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
-
-    page.drawText(`Perfil Inversor: ${perfil}`, {
-      x: 50,
-      y: 350,
-      size: 18,
-      font,
-      color: rgb(0, 0, 0)
-    })
-
-    page.drawText('Cartera sugerida:', {
-      x: 50,
-      y: 320,
-      size: 14,
-      font,
-      color: rgb(0.1, 0.1, 0.1)
-    })
-
-    cartera.forEach((activo, i) => {
-      page.drawText(`- ${activo}`, {
-        x: 70,
-        y: 300 - i * 20,
-        size: 12,
-        font,
-        color: rgb(0, 0, 0)
-      })
-    })
-
-    const pdfBytes = await pdfDoc.save()
-    const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBytes)))
-    return base64Pdf
-  }
-
-  // Función para manejar el envío del formulario
   const handleSubmit = async (e) => {
     e.preventDefault()
     const perfil = calcularPerfil(formData)
     const cartera = obtenerCartera(perfil)
 
     try {
-      // Guardamos la respuesta del cuestionario en Firebase
       await addDoc(collection(db, 'cuestionarios'), {
         ...formData,
         perfil,
         timestamp: Timestamp.now()
       })
 
-      // Generamos el PDF y lo convertimos a base64
-      const pdfBase64 = await generarPDF(perfil, cartera)
-
-      // Enviamos el correo con el PDF adjunto usando EmailJS
-      await emailjs.send('service_toji81m', 'template_6us1g68', {
-        to_email: formData.email,
-        nombre_usuario: formData.nombre,
-        perfil_usuario: perfil,
-        cartera_1: cartera[0],
-        cartera_2: cartera[1],
-        cartera_3: cartera[2],
-        pdf_attachment: `data:application/pdf;base64,${pdfBase64}` // Aquí pasamos el PDF base64
-      }, 'y2-PNRI-wvGie9Qdb')
-
-      // Guardamos el perfil del usuario y redirigimos a la página de su cartera
-      localStorage.setItem('perfilUsuario', perfil)
-      navigate('/cartera', { state: { perfil } })
+      navigate('/cartera', { state: { perfil, email: formData.email } })
 
     } catch (error) {
       console.error("Error al guardar o enviar:", error)
