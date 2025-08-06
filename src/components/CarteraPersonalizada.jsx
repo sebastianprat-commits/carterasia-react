@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
 import { useLocation, Link } from 'react-router-dom'
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 
 const obtenerCartera = (perfil) => {
   const carteras = {
@@ -22,22 +22,56 @@ const obtenerCartera = (perfil) => {
   return carteras[perfil] || []
 }
 
+const generarPDF = async (perfil, cartera) => {
+  const pdfDoc = await PDFDocument.create()
+  const page = pdfDoc.addPage([600, 700])
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
+
+  const fecha = new Date().toLocaleString()
+
+  page.drawText(`Informe de Cartera Personalizada`, {
+    x: 50,
+    y: 650,
+    size: 18,
+    font,
+    color: rgb(0, 0, 0.6)
+  })
+
+  page.drawText(`Fecha: ${fecha}`, { x: 50, y: 620, size: 12, font })
+  page.drawText(`Perfil inversor detectado: ${perfil}`, {
+    x: 50,
+    y: 590,
+    size: 14,
+    font,
+    color: rgb(0.2, 0.2, 0.2)
+  })
+
+  page.drawText(`Cartera sugerida:`, { x: 50, y: 560, size: 13, font })
+
+  cartera.forEach((activo, i) => {
+    page.drawText(`- ${activo}`, {
+      x: 70,
+      y: 540 - i * 20,
+      size: 12,
+      font
+    })
+  })
+
+  const pdfBytes = await pdfDoc.save()
+  const blob = new Blob([pdfBytes], { type: 'application/pdf' })
+  const url = URL.createObjectURL(blob)
+
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `cartera-${perfil}.pdf`
+  link.click()
+
+  URL.revokeObjectURL(url)
+}
+
 const CarteraPersonalizada = () => {
   const location = useLocation()
-  const [perfil, setPerfil] = useState(null)
-
-  useEffect(() => {
-    const perfilEnState = location.state?.perfil
-    if (perfilEnState) {
-      setPerfil(perfilEnState)
-      localStorage.setItem('perfilUsuario', perfilEnState) // guarda
-    } else {
-      const perfilGuardado = localStorage.getItem('perfilUsuario')
-      if (perfilGuardado) {
-        setPerfil(perfilGuardado)
-      }
-    }
-  }, [location.state])
+  const perfil = location.state?.perfil
 
   if (!perfil) {
     return (
@@ -64,8 +98,15 @@ const CarteraPersonalizada = () => {
         ))}
       </ul>
 
-      <div className="mt-6">
-        <Link to="/" className="text-blue-600 underline">
+      <div className="mt-6 flex flex-col gap-4">
+        <button
+          onClick={() => generarPDF(perfil, cartera)}
+          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+        >
+          Descargar informe PDF
+        </button>
+
+        <Link to="/" className="text-blue-600 underline text-center">
           Volver al inicio
         </Link>
       </div>
@@ -74,4 +115,3 @@ const CarteraPersonalizada = () => {
 }
 
 export default CarteraPersonalizada
-
