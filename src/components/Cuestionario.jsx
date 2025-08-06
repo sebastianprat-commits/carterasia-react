@@ -128,7 +128,7 @@ function Cuestionario() {
       const pdfBase64 = await generarPDF(perfil, cartera)
 
       // Envía el email con EmailJS
-      await emailjs.send('service_y1v48yw', 'template_6us1g68', {
+      await emailjs.send('service_toji81m', 'template_6us1g68', {
         to_email: formData.email,
         perfil_usuario: perfil,
         cartera_sugerida: cartera.join(', '),
