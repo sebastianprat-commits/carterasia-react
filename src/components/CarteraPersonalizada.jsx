@@ -1,5 +1,5 @@
 import React from 'react'
-import { useLocation, Link, useNavigate } from 'react-router-dom'
+import React, { useLocation, useNavigate } from 'react-router-dom'
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import emailjs from '@emailjs/browser'
 
@@ -76,7 +76,13 @@ const enviarEmail = async (perfil, cartera, email) => {
   formData.append('cartera_3', cartera[2])
   formData.append('pdf_attachment', pdfBlob, `cartera-${perfil}.pdf`) // Adjuntamos el archivo PDF como un Blob
 
-  await emailjs.sendForm('service_toji81m', 'template_6us1g68', formData, 'y2-PNRI-wvGie9Qdb')
+  try {
+    await emailjs.sendForm('service_toji81m', 'template_6us1g68', formData, 'y2-PNRI-wvGie9Qdb')
+    console.log("Correo enviado correctamente")
+  } catch (error) {
+    console.error("Error al enviar el email:", error)
+    alert("Hubo un error al enviar el correo.")
+  }
 }
 
 const CarteraPersonalizada = () => {
@@ -154,3 +160,4 @@ const CarteraPersonalizada = () => {
 }
 
 export default CarteraPersonalizada
+
