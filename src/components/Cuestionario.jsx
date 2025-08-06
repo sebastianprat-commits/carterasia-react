@@ -109,7 +109,8 @@ function Cuestionario() {
 const pdfBytes = await pdfDoc.save()
 const base64Pdf = btoa(String.fromCharCode(...pdfBytes))
 
-    return pdfBase64
+    return base64Pdf
+
   }
 
   const handleSubmit = async (e) => {
