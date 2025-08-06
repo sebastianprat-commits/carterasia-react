@@ -113,21 +113,24 @@ function Cuestionario() {
     return base64Pdf
   }
 
+  // Función para manejar el envío del formulario
   const handleSubmit = async (e) => {
     e.preventDefault()
     const perfil = calcularPerfil(formData)
     const cartera = obtenerCartera(perfil)
 
     try {
+      // Guardamos la respuesta del cuestionario en Firebase
       await addDoc(collection(db, 'cuestionarios'), {
         ...formData,
         perfil,
         timestamp: Timestamp.now()
       })
 
+      // Generamos el PDF y lo convertimos a base64
       const pdfBase64 = await generarPDF(perfil, cartera)
 
-      // Enviamos el email con el PDF adjunto
+      // Enviamos el correo con el PDF adjunto usando EmailJS
       await emailjs.send('service_toji81m', 'template_6us1g68', {
         to_email: formData.email,
         nombre_usuario: formData.nombre,
@@ -135,9 +138,10 @@ function Cuestionario() {
         cartera_1: cartera[0],
         cartera_2: cartera[1],
         cartera_3: cartera[2],
-        pdf_attachment: pdfBase64
+        pdf_attachment: `data:application/pdf;base64,${pdfBase64}` // Aquí pasamos el PDF base64
       }, 'y2-PNRI-wvGie9Qdb')
 
+      // Guardamos el perfil del usuario y redirigimos a la página de su cartera
       localStorage.setItem('perfilUsuario', perfil)
       navigate('/cartera', { state: { perfil } })
 
@@ -173,4 +177,3 @@ function Cuestionario() {
 }
 
 export default Cuestionario
-
