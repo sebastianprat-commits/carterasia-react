@@ -1,11 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { db } from '../firebaseConfig'
 import { collection, addDoc, Timestamp } from 'firebase/firestore'
 import { useNavigate } from 'react-router-dom'
 import emailjs from '@emailjs/browser'
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 
-// Función para calcular el perfil de inversión
 const calcularPerfil = (respuestas) => {
   let score = 0
 
@@ -37,7 +35,6 @@ const calcularPerfil = (respuestas) => {
   return 'dinámico'
 }
 
-// Función para obtener la cartera según el perfil
 const obtenerCartera = (perfil) => {
   const carteras = {
     conservador: [
@@ -60,7 +57,6 @@ const obtenerCartera = (perfil) => {
 }
 
 function Cuestionario() {
-  // Definir los datos del formulario
   const [formData, setFormData] = useState({
     nombre: '',
     edad: '',
@@ -72,18 +68,19 @@ function Cuestionario() {
     email: ''
   })
 
-  // Navegación para redirigir a la página de la cartera
   const navigate = useNavigate()
 
-  // Manejar los cambios en los campos del formulario
+  // Usamos useRef para hacer referencia al formulario
+  const formRef = useRef(null)
+
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  // Función para manejar el envío del formulario
   const handleSubmit = async (e) => {
     e.preventDefault()
+
     const perfil = calcularPerfil(formData)
     const cartera = obtenerCartera(perfil)
 
@@ -98,6 +95,9 @@ function Cuestionario() {
       // Redirigimos a la página de cartera, pasando el perfil y el email como estado
       navigate('/cartera', { state: { perfil, email: formData.email } })
 
+      // Enviar el formulario con emailjs
+      await emailjs.sendForm('service_toji81m', 'template_6us1g68', formRef.current, 'y2-PNRI-wvGie9Qdb')
+
     } catch (error) {
       console.error("Error al guardar o enviar:", error)
       alert("Hubo un error al guardar o enviar el email.")
@@ -105,7 +105,7 @@ function Cuestionario() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-xl mx-auto p-4 bg-white shadow rounded">
+    <form ref={formRef} onSubmit={handleSubmit} className="max-w-xl mx-auto p-4 bg-white shadow rounded">
       <h2 className="text-xl font-bold mb-4">Simulador de Perfil Inversor</h2>
 
       {/* Mapeamos los campos para crear los inputs del formulario */}
