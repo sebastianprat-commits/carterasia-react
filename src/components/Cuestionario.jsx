@@ -1,9 +1,11 @@
+import React, { useState } from 'react'
 import { db } from '../firebaseConfig'
 import { collection, addDoc, Timestamp } from 'firebase/firestore'
 import { useNavigate } from 'react-router-dom'
 import emailjs from '@emailjs/browser'
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 
+// Función para calcular el perfil de inversión
 const calcularPerfil = (respuestas) => {
   let score = 0
 
@@ -35,6 +37,7 @@ const calcularPerfil = (respuestas) => {
   return 'dinámico'
 }
 
+// Función para obtener la cartera según el perfil
 const obtenerCartera = (perfil) => {
   const carteras = {
     conservador: [
@@ -57,6 +60,7 @@ const obtenerCartera = (perfil) => {
 }
 
 function Cuestionario() {
+  // Definir los datos del formulario
   const [formData, setFormData] = useState({
     nombre: '',
     edad: '',
@@ -68,25 +72,30 @@ function Cuestionario() {
     email: ''
   })
 
+  // Navegación para redirigir a la página de la cartera
   const navigate = useNavigate()
 
+  // Manejar los cambios en los campos del formulario
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
+  // Función para manejar el envío del formulario
   const handleSubmit = async (e) => {
     e.preventDefault()
     const perfil = calcularPerfil(formData)
     const cartera = obtenerCartera(perfil)
 
     try {
+      // Guardamos la respuesta del cuestionario en Firebase
       await addDoc(collection(db, 'cuestionarios'), {
         ...formData,
         perfil,
         timestamp: Timestamp.now()
       })
 
+      // Redirigimos a la página de cartera, pasando el perfil y el email como estado
       navigate('/cartera', { state: { perfil, email: formData.email } })
 
     } catch (error) {
@@ -99,6 +108,7 @@ function Cuestionario() {
     <form onSubmit={handleSubmit} className="max-w-xl mx-auto p-4 bg-white shadow rounded">
       <h2 className="text-xl font-bold mb-4">Simulador de Perfil Inversor</h2>
 
+      {/* Mapeamos los campos para crear los inputs del formulario */}
       {['nombre', 'edad', 'experiencia', 'formacion', 'horizonte', 'objetivo', 'riesgo', 'email'].map((campo) => (
         <label key={campo} className="block mb-2 capitalize">
           {campo}:
