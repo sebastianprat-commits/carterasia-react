@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { db } from '../firebaseConfig'
 import { collection, addDoc, Timestamp } from 'firebase/firestore'
 import { useNavigate } from 'react-router-dom'
+import emailjs from '@emailjs/browser'
 
 const calcularPerfil = (respuestas) => {
   let score = 0
@@ -34,6 +35,27 @@ const calcularPerfil = (respuestas) => {
   return 'dinámico'
 }
 
+const obtenerCartera = (perfil) => {
+  const carteras = {
+    conservador: [
+      'iShares Euro Government Bond 1-3yr (IBGL)',
+      'Vanguard Global Aggregate Bond (VAGF)',
+      'Amundi Cash EUR (AECE)'
+    ],
+    moderado: [
+      'iShares MSCI World (IWRD)',
+      'Vanguard Global Moderate Allocation (VMAA)',
+      'Xtrackers ESG EUR Corp Bond (XDCB)'
+    ],
+    dinámico: [
+      'ARK Innovation ETF (ARKK)',
+      'iShares NASDAQ 100 (CNDX)',
+      'Vanguard Emerging Markets (VFEM)'
+    ]
+  }
+  return carteras[perfil] || []
+}
+
 function Cuestionario() {
   const [formData, setFormData] = useState({
     edad: '',
@@ -41,7 +63,8 @@ function Cuestionario() {
     formacion: '',
     horizonte: '',
     objetivo: '',
-    riesgo: ''
+    riesgo: '',
+    email: ''
   })
 
   const navigate = useNavigate()
@@ -54,20 +77,29 @@ function Cuestionario() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     const perfil = calcularPerfil(formData)
+    const cartera = obtenerCartera(perfil)
 
     try {
+      // Guardar en Firebase
       await addDoc(collection(db, 'cuestionarios'), {
         ...formData,
         perfil,
         timestamp: Timestamp.now()
       })
-      console.log(perfil)
+
+      // Enviar email con EmailJS
+      await emailjs.send('service_y1v48yw', 'y2-PNRI-wvGie9Qdb', {
+        to_email: formData.email,
+        user_perfil: perfil,
+        cartera_sugerida: cartera.join(', ')
+      }, 'y2-PNRI-wvGie9Qdb')
+
       localStorage.setItem('perfilUsuario', perfil)
-      navigate('/cartera', { state: { perfil } }) // 👈 redirección correcta
+      navigate('/cartera', { state: { perfil } })
 
     } catch (error) {
-      console.error("Error al guardar en Firestore:", error)
-      alert("Error al guardar los datos")
+      console.error("Error al enviar datos o correo:", error)
+      alert("Error al enviar los datos. Revisa el email y vuelve a intentar.")
     }
   }
 
@@ -77,74 +109,37 @@ function Cuestionario() {
 
       <label className="block mb-2">
         Edad:
-        <input
-          type="number"
-          name="edad"
-          value={formData.edad}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-          required
-        />
+        <input type="number" name="edad" value={formData.edad} onChange={handleChange} className="w-full border p-2 rounded" required />
       </label>
 
       <label className="block mb-2">
         Experiencia:
-        <input
-          type="text"
-          name="experiencia"
-          value={formData.experiencia}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-          required
-        />
+        <input type="text" name="experiencia" value={formData.experiencia} onChange={handleChange} className="w-full border p-2 rounded" required />
       </label>
 
       <label className="block mb-2">
         Formación:
-        <input
-          type="text"
-          name="formacion"
-          value={formData.formacion}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-          required
-        />
+        <input type="text" name="formacion" value={formData.formacion} onChange={handleChange} className="w-full border p-2 rounded" required />
       </label>
 
       <label className="block mb-2">
         Horizonte temporal:
-        <input
-          type="text"
-          name="horizonte"
-          value={formData.horizonte}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-          required
-        />
+        <input type="text" name="horizonte" value={formData.horizonte} onChange={handleChange} className="w-full border p-2 rounded" required />
       </label>
 
       <label className="block mb-2">
         Objetivo:
-        <input
-          type="text"
-          name="objetivo"
-          value={formData.objetivo}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-          required
-        />
+        <input type="text" name="objetivo" value={formData.objetivo} onChange={handleChange} className="w-full border p-2 rounded" required />
+      </label>
+
+      <label className="block mb-2">
+        Riesgo asumido:
+        <input type="text" name="riesgo" value={formData.riesgo} onChange={handleChange} className="w-full border p-2 rounded" required />
       </label>
 
       <label className="block mb-4">
-        Riesgo asumido:
-        <input
-          type="text"
-          name="riesgo"
-          value={formData.riesgo}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-          required
-        />
+        Tu email:
+        <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full border p-2 rounded" required />
       </label>
 
       <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
