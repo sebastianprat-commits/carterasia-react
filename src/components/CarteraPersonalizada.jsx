@@ -85,7 +85,7 @@ const CarteraPersonalizada = () => {
   const email = location.state?.email  // Asegúrate de que el email también se pase en la redirección
   const [emailSent, setEmailSent] = React.useState(false)
 
-  if (!perfil) {
+  if (!perfil || !email) {
     return (
       <div className="max-w-xl mx-auto mt-10 p-4 bg-white shadow rounded text-center">
         <h2 className="text-xl font-bold mb-4">No se ha podido determinar tu perfil</h2>
@@ -153,4 +153,3 @@ const CarteraPersonalizada = () => {
 }
 
 export default CarteraPersonalizada
-
