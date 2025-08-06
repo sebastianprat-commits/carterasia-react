@@ -59,6 +59,7 @@ const obtenerCartera = (perfil) => {
 
 function Cuestionario() {
   const [formData, setFormData] = useState({
+    nombre: '',
     edad: '',
     experiencia: '',
     formacion: '',
@@ -107,7 +108,7 @@ function Cuestionario() {
     })
 
     const pdfBytes = await pdfDoc.save()
-    const base64Pdf = btoa(String.fromCharCode(...pdfBytes))
+    const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBytes)))
     return base64Pdf
   }
 
@@ -117,31 +118,30 @@ function Cuestionario() {
     const cartera = obtenerCartera(perfil)
 
     try {
-      // Guarda en Firestore
       await addDoc(collection(db, 'cuestionarios'), {
         ...formData,
         perfil,
         timestamp: Timestamp.now()
       })
 
-      // Genera PDF en base64
       const pdfBase64 = await generarPDF(perfil, cartera)
 
-      // Envía el email con EmailJS
       await emailjs.send('service_toji81m', 'template_6us1g68', {
         to_email: formData.email,
+        nombre_usuario: formData.nombre,
         perfil_usuario: perfil,
-        cartera_sugerida: cartera.join(', '),
+        cartera_1: cartera[0],
+        cartera_2: cartera[1],
+        cartera_3: cartera[2],
         pdf_attachment: pdfBase64
       }, 'y2-PNRI-wvGie9Qdb')
 
-      // Redirige al componente de cartera personalizada
       localStorage.setItem('perfilUsuario', perfil)
       navigate('/cartera', { state: { perfil } })
 
     } catch (error) {
-      console.error("Error:", error)
-      alert("Hubo un problema al guardar o enviar el email.")
+      console.error("Error al guardar o enviar:", error)
+      alert("Hubo un error al guardar o enviar el email.")
     }
   }
 
@@ -149,7 +149,7 @@ function Cuestionario() {
     <form onSubmit={handleSubmit} className="max-w-xl mx-auto p-4 bg-white shadow rounded">
       <h2 className="text-xl font-bold mb-4">Simulador de Perfil Inversor</h2>
 
-      {['edad', 'experiencia', 'formacion', 'horizonte', 'objetivo', 'riesgo', 'email'].map((campo) => (
+      {['nombre', 'edad', 'experiencia', 'formacion', 'horizonte', 'objetivo', 'riesgo', 'email'].map((campo) => (
         <label key={campo} className="block mb-2 capitalize">
           {campo}:
           <input
@@ -168,6 +168,10 @@ function Cuestionario() {
       </button>
     </form>
   )
+}
+
+export default Cuestionario
+
 }
 
 export default Cuestionario
