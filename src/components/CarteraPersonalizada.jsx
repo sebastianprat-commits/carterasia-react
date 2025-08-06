@@ -1,4 +1,4 @@
-import { useLocation, Link } from 'react-router-dom'
+import { useLocation, Link, useNavigate } from 'react-router-dom'
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import emailjs from '@emailjs/browser'
 
@@ -59,28 +59,31 @@ const generarPDF = async (perfil, cartera) => {
   })
 
   const pdfBytes = await pdfDoc.save()
-  const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBytes))) // Convertir el PDF a base64
-  return base64Pdf
+  const blob = new Blob([pdfBytes], { type: 'application/pdf' })
+  return blob
 }
 
 const enviarEmail = async (perfil, cartera, email) => {
-  const pdfBase64 = await generarPDF(perfil, cartera)
+  const pdfBlob = await generarPDF(perfil, cartera)
 
-  await emailjs.send('service_toji81m', 'template_6us1g68', {
-    to_email: email,
-    nombre_usuario: 'Usuario',  // Este valor puede provenir del formulario si lo tienes
-    perfil_usuario: perfil,
-    cartera_1: cartera[0],
-    cartera_2: cartera[1],
-    cartera_3: cartera[2],
-    pdf_attachment: `data:application/pdf;base64,${pdfBase64}`  // Enviar el PDF en Base64
-  }, 'y2-PNRI-wvGie9Qdb')
+  const formData = new FormData()
+  formData.append('to_email', email)
+  formData.append('nombre_usuario', 'Usuario') // Este valor puede provenir del formulario si lo tienes
+  formData.append('perfil_usuario', perfil)
+  formData.append('cartera_1', cartera[0])
+  formData.append('cartera_2', cartera[1])
+  formData.append('cartera_3', cartera[2])
+  formData.append('pdf_attachment', pdfBlob, `cartera-${perfil}.pdf`) // Adjuntamos el archivo PDF como un Blob
+
+  await emailjs.sendForm('service_toji81m', 'template_6us1g68', formData, 'y2-PNRI-wvGie9Qdb')
 }
 
 const CarteraPersonalizada = () => {
   const location = useLocation()
+  const navigate = useNavigate()
   const perfil = location.state?.perfil
   const email = location.state?.email  // Asegúrate de que el email también se pase en la redirección
+  const [emailSent, setEmailSent] = React.useState(false)
 
   if (!perfil) {
     return (
@@ -96,6 +99,19 @@ const CarteraPersonalizada = () => {
 
   const cartera = obtenerCartera(perfil)
 
+  const handleEmailSend = async () => {
+    try {
+      await enviarEmail(perfil, cartera, email)
+      setEmailSent(true)
+      setTimeout(() => {
+        navigate('/')  // Redirige al usuario al inicio después de un breve retraso
+      }, 2000)
+    } catch (error) {
+      console.error("Error al enviar el email:", error)
+      alert("Hubo un error al enviar el correo.")
+    }
+  }
+
   return (
     <div className="max-w-xl mx-auto mt-10 p-4 bg-white shadow rounded">
       <h2 className="text-xl font-bold mb-4">Tu perfil inversor es: <span className="capitalize text-blue-600">{perfil}</span></h2>
@@ -108,19 +124,25 @@ const CarteraPersonalizada = () => {
       </ul>
 
       <div className="mt-6 flex flex-col gap-4">
-        <button
-          onClick={() => generarPDF(perfil, cartera)}
-          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-        >
-          Descargar informe PDF
-        </button>
+        {emailSent ? (
+          <p className="text-green-600">Email enviado correctamente. Redirigiendo...</p>
+        ) : (
+          <>
+            <button
+              onClick={() => generarPDF(perfil, cartera)}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+            >
+              Descargar informe PDF
+            </button>
 
-        <button
-          onClick={() => enviarEmail(perfil, cartera, email)}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          Enviar por email
-        </button>
+            <button
+              onClick={handleEmailSend}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              Enviar por email
+            </button>
+          </>
+        )}
 
         <Link to="/" className="text-blue-600 underline text-center">
           Volver al inicio
