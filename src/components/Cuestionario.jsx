@@ -106,8 +106,9 @@ function Cuestionario() {
       })
     })
 
-    const pdfBytes = await pdfDoc.save()
-    const pdfBase64 = Buffer.from(pdfBytes).toString('base64')
+const pdfBytes = await pdfDoc.save()
+const base64Pdf = btoa(String.fromCharCode(...pdfBytes))
+
     return pdfBase64
   }
 
