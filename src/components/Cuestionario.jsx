@@ -76,6 +76,7 @@ function Cuestionario() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
+  // Función para generar el PDF
   const generarPDF = async (perfil, cartera) => {
     const pdfDoc = await PDFDocument.create()
     const page = pdfDoc.addPage([600, 400])
@@ -126,6 +127,7 @@ function Cuestionario() {
 
       const pdfBase64 = await generarPDF(perfil, cartera)
 
+      // Enviamos el email con el PDF adjunto
       await emailjs.send('service_toji81m', 'template_6us1g68', {
         to_email: formData.email,
         nombre_usuario: formData.nombre,
@@ -171,3 +173,4 @@ function Cuestionario() {
 }
 
 export default Cuestionario
+
