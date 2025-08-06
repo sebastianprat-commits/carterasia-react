@@ -1,5 +1,6 @@
 import { useLocation, Link } from 'react-router-dom'
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
+import emailjs from '@emailjs/browser'
 
 const obtenerCartera = (perfil) => {
   const carteras = {
@@ -58,20 +59,28 @@ const generarPDF = async (perfil, cartera) => {
   })
 
   const pdfBytes = await pdfDoc.save()
-  const blob = new Blob([pdfBytes], { type: 'application/pdf' })
-  const url = URL.createObjectURL(blob)
+  const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBytes))) // Convertir el PDF a base64
+  return base64Pdf
+}
 
-  const link = document.createElement('a')
-  link.href = url
-  link.download = `cartera-${perfil}.pdf`
-  link.click()
+const enviarEmail = async (perfil, cartera, email) => {
+  const pdfBase64 = await generarPDF(perfil, cartera)
 
-  URL.revokeObjectURL(url)
+  await emailjs.send('service_toji81m', 'template_6us1g68', {
+    to_email: email,
+    nombre_usuario: 'Usuario',  // Este valor puede provenir del formulario si lo tienes
+    perfil_usuario: perfil,
+    cartera_1: cartera[0],
+    cartera_2: cartera[1],
+    cartera_3: cartera[2],
+    pdf_attachment: `data:application/pdf;base64,${pdfBase64}`  // Enviar el PDF en Base64
+  }, 'y2-PNRI-wvGie9Qdb')
 }
 
 const CarteraPersonalizada = () => {
   const location = useLocation()
   const perfil = location.state?.perfil
+  const email = location.state?.email  // Asegúrate de que el email también se pase en la redirección
 
   if (!perfil) {
     return (
@@ -106,6 +115,13 @@ const CarteraPersonalizada = () => {
           Descargar informe PDF
         </button>
 
+        <button
+          onClick={() => enviarEmail(perfil, cartera, email)}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          Enviar por email
+        </button>
+
         <Link to="/" className="text-blue-600 underline text-center">
           Volver al inicio
         </Link>
@@ -115,3 +131,4 @@ const CarteraPersonalizada = () => {
 }
 
 export default CarteraPersonalizada
+
