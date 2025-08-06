@@ -106,11 +106,9 @@ function Cuestionario() {
       })
     })
 
-const pdfBytes = await pdfDoc.save()
-const base64Pdf = btoa(String.fromCharCode(...pdfBytes))
-
+    const pdfBytes = await pdfDoc.save()
+    const base64Pdf = btoa(String.fromCharCode(...pdfBytes))
     return base64Pdf
-
   }
 
   const handleSubmit = async (e) => {
@@ -129,7 +127,7 @@ const base64Pdf = btoa(String.fromCharCode(...pdfBytes))
       // Genera PDF en base64
       const pdfBase64 = await generarPDF(perfil, cartera)
 
-      // Envía el email
+      // Envía el email con EmailJS
       await emailjs.send('service_y1v48yw', 'template_6us1g68', {
         to_email: formData.email,
         perfil_usuario: perfil,
@@ -137,7 +135,7 @@ const base64Pdf = btoa(String.fromCharCode(...pdfBytes))
         pdf_attachment: pdfBase64
       }, 'y2-PNRI-wvGie9Qdb')
 
-      // Redirige al componente de resultado
+      // Redirige al componente de cartera personalizada
       localStorage.setItem('perfilUsuario', perfil)
       navigate('/cartera', { state: { perfil } })
 
