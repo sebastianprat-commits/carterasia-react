@@ -1,4 +1,5 @@
-import React, { useLocation, useNavigate } from 'react-router-dom'
+import React, { useState } from 'react'
+import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import emailjs from '@emailjs/browser'
 
@@ -159,4 +160,3 @@ const CarteraPersonalizada = () => {
 }
 
 export default CarteraPersonalizada
-
