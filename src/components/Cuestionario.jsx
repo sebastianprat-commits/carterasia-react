@@ -3,6 +3,7 @@ import { db } from '../firebaseConfig'
 import { collection, addDoc, Timestamp } from 'firebase/firestore'
 import { useNavigate } from 'react-router-dom'
 import emailjs from '@emailjs/browser'
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 
 const calcularPerfil = (respuestas) => {
   let score = 0
@@ -74,32 +75,73 @@ function Cuestionario() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
+  const generarPDF = async (perfil, cartera) => {
+    const pdfDoc = await PDFDocument.create()
+    const page = pdfDoc.addPage([600, 400])
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
+
+    page.drawText(`Perfil Inversor: ${perfil}`, {
+      x: 50,
+      y: 350,
+      size: 18,
+      font,
+      color: rgb(0, 0, 0)
+    })
+
+    page.drawText('Cartera sugerida:', {
+      x: 50,
+      y: 320,
+      size: 14,
+      font,
+      color: rgb(0.1, 0.1, 0.1)
+    })
+
+    cartera.forEach((activo, i) => {
+      page.drawText(`- ${activo}`, {
+        x: 70,
+        y: 300 - i * 20,
+        size: 12,
+        font,
+        color: rgb(0, 0, 0)
+      })
+    })
+
+    const pdfBytes = await pdfDoc.save()
+    const pdfBase64 = Buffer.from(pdfBytes).toString('base64')
+    return pdfBase64
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     const perfil = calcularPerfil(formData)
     const cartera = obtenerCartera(perfil)
 
     try {
-      // Guardar en Firebase
+      // Guarda en Firestore
       await addDoc(collection(db, 'cuestionarios'), {
         ...formData,
         perfil,
         timestamp: Timestamp.now()
       })
 
-      // Enviar email con EmailJS
+      // Genera PDF en base64
+      const pdfBase64 = await generarPDF(perfil, cartera)
+
+      // Envía el email
       await emailjs.send('service_y1v48yw', 'y2-PNRI-wvGie9Qdb', {
         to_email: formData.email,
-        user_perfil: perfil,
-        cartera_sugerida: cartera.join(', ')
+        perfil_usuario: perfil,
+        cartera_sugerida: cartera.join(', '),
+        pdf_attachment: pdfBase64
       }, 'y2-PNRI-wvGie9Qdb')
 
+      // Redirige al componente de resultado
       localStorage.setItem('perfilUsuario', perfil)
       navigate('/cartera', { state: { perfil } })
 
     } catch (error) {
-      console.error("Error al enviar datos o correo:", error)
-      alert("Error al enviar los datos. Revisa el email y vuelve a intentar.")
+      console.error("Error:", error)
+      alert("Hubo un problema al guardar o enviar el email.")
     }
   }
 
@@ -107,40 +149,19 @@ function Cuestionario() {
     <form onSubmit={handleSubmit} className="max-w-xl mx-auto p-4 bg-white shadow rounded">
       <h2 className="text-xl font-bold mb-4">Simulador de Perfil Inversor</h2>
 
-      <label className="block mb-2">
-        Edad:
-        <input type="number" name="edad" value={formData.edad} onChange={handleChange} className="w-full border p-2 rounded" required />
-      </label>
-
-      <label className="block mb-2">
-        Experiencia:
-        <input type="text" name="experiencia" value={formData.experiencia} onChange={handleChange} className="w-full border p-2 rounded" required />
-      </label>
-
-      <label className="block mb-2">
-        Formación:
-        <input type="text" name="formacion" value={formData.formacion} onChange={handleChange} className="w-full border p-2 rounded" required />
-      </label>
-
-      <label className="block mb-2">
-        Horizonte temporal:
-        <input type="text" name="horizonte" value={formData.horizonte} onChange={handleChange} className="w-full border p-2 rounded" required />
-      </label>
-
-      <label className="block mb-2">
-        Objetivo:
-        <input type="text" name="objetivo" value={formData.objetivo} onChange={handleChange} className="w-full border p-2 rounded" required />
-      </label>
-
-      <label className="block mb-2">
-        Riesgo asumido:
-        <input type="text" name="riesgo" value={formData.riesgo} onChange={handleChange} className="w-full border p-2 rounded" required />
-      </label>
-
-      <label className="block mb-4">
-        Tu email:
-        <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full border p-2 rounded" required />
-      </label>
+      {['edad', 'experiencia', 'formacion', 'horizonte', 'objetivo', 'riesgo', 'email'].map((campo) => (
+        <label key={campo} className="block mb-2 capitalize">
+          {campo}:
+          <input
+            type={campo === 'edad' ? 'number' : campo === 'email' ? 'email' : 'text'}
+            name={campo}
+            value={formData[campo]}
+            onChange={handleChange}
+            className="w-full border p-2 rounded"
+            required
+          />
+        </label>
+      ))}
 
       <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
         Enviar
@@ -150,3 +171,4 @@ function Cuestionario() {
 }
 
 export default Cuestionario
+
