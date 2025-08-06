@@ -1,4 +1,3 @@
-import React from 'react'
 import React, { useLocation, useNavigate } from 'react-router-dom'
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import emailjs from '@emailjs/browser'
