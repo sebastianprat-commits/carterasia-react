@@ -171,8 +171,3 @@ function Cuestionario() {
 }
 
 export default Cuestionario
-
-}
-
-export default Cuestionario
-
