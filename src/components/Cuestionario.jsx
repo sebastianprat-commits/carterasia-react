@@ -1,3 +1,4 @@
+import React from 'react'
 import { useState } from 'react'
 import { db } from '../firebaseConfig'
 import { collection, addDoc, Timestamp } from 'firebase/firestore'
