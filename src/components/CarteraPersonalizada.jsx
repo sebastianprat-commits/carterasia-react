@@ -76,7 +76,7 @@ const enviarEmail = async (perfil, cartera, email, nombre) => {
     // Convertir el Blob del PDF a base64
     const reader = new FileReader()
     reader.readAsDataURL(pdfBlob)
-    
+
     reader.onloadend = async () => {
       const base64Pdf = reader.result.split(',')[1] // Eliminar la parte "data:application/pdf;base64,"
 
