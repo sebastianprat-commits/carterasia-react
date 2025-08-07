@@ -79,30 +79,28 @@ function Cuestionario() {
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+  e.preventDefault()  // Prevenir el comportamiento por defecto del formulario
 
-    const perfil = calcularPerfil(formData)
-    const cartera = obtenerCartera(perfil)
+  const perfil = calcularPerfil(formData)  // Aquí calculamos el perfil
+  const cartera = obtenerCartera(perfil)  // Obtenemos la cartera basada en el perfil
 
-    try {
-      // Guardamos la respuesta del cuestionario en Firebase
-      await addDoc(collection(db, 'cuestionarios'), {
-        ...formData,
-        perfil,
-        timestamp: Timestamp.now()
-      })
+  try {
+    // Guardamos las respuestas del cuestionario en Firebase
+    await addDoc(collection(db, 'cuestionarios'), {
+      ...formData,
+      perfil,
+      timestamp: Timestamp.now()
+    })
 
-      // Redirigimos a la página de cartera, pasando el perfil y el email como estado
-      navigate('/cartera', { state: { perfil, email: formData.email } })
+    // Redirigimos a la página de cartera, pasando el perfil, el email y el nombre como estado
+    navigate('/cartera', { state: { perfil, email: formData.email, nombre: formData.nombre } })
 
-      // Enviar el formulario con emailjs
-      await emailjs.sendForm('service_toji81m', 'template_6us1g68', formRef.current, 'y2-PNRI-wvGie9Qdb')
-
-    } catch (error) {
-      console.error("Error al guardar o enviar:", error)
-      alert("Hubo un error al guardar o enviar el email.")
-    }
+  } catch (error) {
+    console.error("Error al guardar o enviar:", error)
+    alert("Hubo un error al guardar o enviar el email.")
   }
+}
+
 
   return (
     <form ref={formRef} onSubmit={handleSubmit} className="max-w-xl mx-auto p-4 bg-white shadow rounded">
