@@ -101,16 +101,15 @@ const enviarEmail = async (perfil, cartera, email, nombre) => {
   }
 }
 
-
-
 const CarteraPersonalizada = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const perfil = location.state?.perfil
   const email = location.state?.email  // Asegúrate de que el email también se pase en la redirección
+  const nombre = location.state?.nombre // Pasa el nombre del usuario también
   const [emailSent, setEmailSent] = React.useState(false)
 
-  if (!perfil || !email) {
+  if (!perfil || !email || !nombre) {
     return (
       <div className="max-w-xl mx-auto mt-10 p-4 bg-white shadow rounded text-center">
         <h2 className="text-xl font-bold mb-4">No se ha podido determinar tu perfil</h2>
@@ -124,30 +123,8 @@ const CarteraPersonalizada = () => {
 
   const cartera = obtenerCartera(perfil)
 
-  const handleEmailSend = async () => {
-  try {
-    setEmailSent(false) // Resetear el estado de mensaje enviado al intentar enviar el email
-    await enviarEmail(perfil, cartera, email, location.state?.nombre)  // Pasa el nombre del usuario
-    setEmailSent(true)
-    setTimeout(() => {
-      navigate('/')  // Redirige al usuario al inicio después de un breve retraso
-    }, 5000) // Aumentar el timeout para que el mensaje de éxito sea visible más tiempo
-  } catch (error) {
-    console.error("Error al enviar el email:", error)
-    alert("Hubo un error al enviar el correo.")
-  }
-}
-
-
-
-  const handleDownloadPDF = async () => {
-    const pdfBlob = await generarPDF(perfil, cartera)
-    const url = URL.createObjectURL(pdfBlob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `cartera-${perfil}.pdf`
-    link.click()
-    URL.revokeObjectURL(url)
+  const handleConfirmar = () => {
+    navigate('/confirmacion', { state: { perfil, cartera, email, nombre } })
   }
 
   return (
@@ -167,30 +144,22 @@ const CarteraPersonalizada = () => {
         ) : (
           <>
             <button
-              onClick={handleDownloadPDF}
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-            >
-              Descargar informe PDF
-            </button>
-
-            <button
-              onClick={handleEmailSend}
+              onClick={handleConfirmar}
               className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
             >
-              Enviar por email
+              Confirmar y enviar por email
             </button>
+
+            <Link to="/" className="text-blue-600 underline text-center">
+              Volver al inicio
+            </Link>
           </>
         )}
-
-        <Link to="/" className="text-blue-600 underline text-center">
-          Volver al inicio
-        </Link>
       </div>
     </div>
   )
 }
 
 export default CarteraPersonalizada
-
 
 
