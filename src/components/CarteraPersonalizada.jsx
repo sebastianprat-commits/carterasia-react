@@ -25,59 +25,65 @@ const obtenerCartera = (perfil) => {
 }
 
 const generarPDF = async (perfil, cartera) => {
-  const pdfDoc = await PDFDocument.create()
-  const page = pdfDoc.addPage([600, 700])
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
+  try {
+    const pdfDoc = await PDFDocument.create()
+    const page = pdfDoc.addPage([600, 700])
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
 
-  const fecha = new Date().toLocaleString()
+    const fecha = new Date().toLocaleString()
 
-  page.drawText(`Informe de Cartera Personalizada`, {
-    x: 50,
-    y: 650,
-    size: 18,
-    font,
-    color: rgb(0, 0, 0.6)
-  })
-
-  page.drawText(`Fecha: ${fecha}`, { x: 50, y: 620, size: 12, font })
-  page.drawText(`Perfil inversor detectado: ${perfil}`, {
-    x: 50,
-    y: 590,
-    size: 14,
-    font,
-    color: rgb(0.2, 0.2, 0.2)
-  })
-
-  page.drawText(`Cartera sugerida:`, { x: 50, y: 560, size: 13, font })
-
-  cartera.forEach((activo, i) => {
-    page.drawText(`- ${activo}`, {
-      x: 70,
-      y: 540 - i * 20,
-      size: 12,
-      font
+    page.drawText(`Informe de Cartera Personalizada`, {
+      x: 50,
+      y: 650,
+      size: 18,
+      font,
+      color: rgb(0, 0, 0.6)
     })
-  })
 
-  const pdfBytes = await pdfDoc.save()
-  const blob = new Blob([pdfBytes], { type: 'application/pdf' })
-  return blob
+    page.drawText(`Fecha: ${fecha}`, { x: 50, y: 620, size: 12, font })
+    page.drawText(`Perfil inversor detectado: ${perfil}`, {
+      x: 50,
+      y: 590,
+      size: 14,
+      font,
+      color: rgb(0.2, 0.2, 0.2)
+    })
+
+    page.drawText(`Cartera sugerida:`, { x: 50, y: 560, size: 13, font })
+
+    cartera.forEach((activo, i) => {
+      page.drawText(`- ${activo}`, {
+        x: 70,
+        y: 540 - i * 20,
+        size: 12,
+        font
+      })
+    })
+
+    const pdfBytes = await pdfDoc.save()
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' })
+    return blob
+  } catch (error) {
+    console.error("Error al generar el PDF", error)
+    alert("Hubo un problema generando el PDF.")
+  }
 }
 
 const enviarEmail = async (perfil, cartera, email) => {
-  const pdfBlob = await generarPDF(perfil, cartera)
-
-  const formData = new FormData()
-  formData.append('to_email', email)
-  formData.append('nombre_usuario', 'Usuario') // Este valor puede provenir del formulario si lo tienes
-  formData.append('perfil_usuario', perfil)
-  formData.append('cartera_1', cartera[0])
-  formData.append('cartera_2', cartera[1])
-  formData.append('cartera_3', cartera[2])
-  formData.append('pdf_attachment', pdfBlob, `cartera-${perfil}.pdf`) // Adjuntamos el archivo PDF como un Blob
-
   try {
-    await emailjs.sendForm('service_toji81m', 'template_6us1g68', formData, 'y2-PNRI-wvGie9Qdb')
+    const pdfBlob = await generarPDF(perfil, cartera)
+
+    const formData = {
+      to_email: email,
+      nombre_usuario: 'Usuario',  // Este valor puede provenir del formulario si lo tienes
+      perfil_usuario: perfil,
+      cartera_1: cartera[0],
+      cartera_2: cartera[1],
+      cartera_3: cartera[2],
+      pdf_attachment: pdfBlob,  // El archivo PDF como Blob
+    }
+
+    await emailjs.send('service_toji81m', 'template_6us1g68', formData, 'y2-PNRI-wvGie9Qdb')
     console.log("Correo enviado correctamente")
   } catch (error) {
     console.error("Error al enviar el email:", error)
@@ -160,4 +166,5 @@ const CarteraPersonalizada = () => {
 }
 
 export default CarteraPersonalizada
+
 
