@@ -103,28 +103,25 @@ function Cuestionario() {
 
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="max-w-xl mx-auto p-4 bg-white shadow rounded">
-      <h2 className="text-xl font-bold mb-4">Simulador de Perfil Inversor</h2>
+    <form onSubmit={handleSubmit} className="max-w-xl mx-auto card">
+  <h2 className="text-2xl font-semibold mb-4">Simulador de Perfil Inversor</h2>
 
-      {/* Mapeamos los campos para crear los inputs del formulario */}
-      {['nombre', 'edad', 'experiencia', 'formacion', 'horizonte', 'objetivo', 'riesgo', 'email'].map((campo) => (
-        <label key={campo} className="block mb-2 capitalize">
-          {campo}:
-          <input
-            type={campo === 'edad' ? 'number' : campo === 'email' ? 'email' : 'text'}
-            name={campo}
-            value={formData[campo]}
-            onChange={handleChange}
-            className="w-full border p-2 rounded"
-            required
-          />
-        </label>
-      ))}
+  {['nombre','edad','experiencia','formacion','horizonte','objetivo','riesgo','email'].map((campo) => (
+    <label key={campo} className="block mb-3">
+      <span className="block text-sm text-ink-500 mb-1 capitalize">{campo}</span>
+      <input
+        type={campo === 'edad' ? 'number' : campo === 'email' ? 'email' : 'text'}
+        name={campo}
+        value={formData[campo]}
+        onChange={handleChange}
+        className="w-full border border-gray-200 focus:border-brand-400 focus:ring-brand-400 rounded-lg px-3 py-2 outline-none"
+        required
+      />
+    </label>
+  ))}
 
-      <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-        Enviar
-      </button>
-    </form>
+  <button type="submit" className="btn btn-primary mt-2">Continuar</button>
+</form>
   )
 }
 
