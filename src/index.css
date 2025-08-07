@@ -2,6 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --font-sans: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, 'Helvetica Neue', Arial, 'Apple Color Emoji', 'Segoe UI Emoji';
+}
+
+html { font-family: var(--font-sans); }
+
+.btn {
+  @apply inline-flex items-center justify-center rounded-lg px-4 py-2 font-medium transition shadow-soft;
+}
+.btn-primary { @apply bg-brand-500 text-white hover:bg-brand-600; }
+.btn-ghost   { @apply text-brand-600 hover:bg-brand-50; }
+.card {
+  @apply bg-white rounded-xl shadow-soft p-6;
+}
+.badge {
+  @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-brand-50 text-brand-700;
+}
+
+
 body {
   @apply bg-gray-50 text-gray-800;
 }
