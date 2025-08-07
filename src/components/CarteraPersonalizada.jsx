@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
@@ -33,7 +32,7 @@ const generarPDF = async (perfil, cartera) => {
 
     const fecha = new Date().toLocaleString()
 
-    page.drawText("Informe de Cartera Personalizada", {
+    page.drawText(`Informe de Cartera Personalizada`, {
       x: 50,
       y: 650,
       size: 18,
@@ -41,8 +40,8 @@ const generarPDF = async (perfil, cartera) => {
       color: rgb(0, 0, 0.6)
     })
 
-    page.drawText("Fecha:" ${fecha}, { x: 50, y: 620, size: 12, font })
-    page.drawText("Perfil inversor detectado:" ${perfil}, {
+    page.drawText(`Fecha: ${fecha}`, { x: 50, y: 620, size: 12, font })
+    page.drawText(`Perfil inversor detectado: ${perfil}`, {
       x: 50,
       y: 590,
       size: 14,
@@ -53,7 +52,7 @@ const generarPDF = async (perfil, cartera) => {
     page.drawText("Cartera sugerida:", { x: 50, y: 560, size: 13, font })
 
     cartera.forEach((activo, i) => {
-      page.drawText(- ${activo}, {
+      page.drawText(`- ${activo}`, {
         x: 70,
         y: 540 - i * 20,
         size: 12,
@@ -102,8 +101,6 @@ const enviarEmail = async (perfil, cartera, email, nombre) => {
   }
 }
 
-
-
 const CarteraPersonalizada = () => {
   const location = useLocation()
   const navigate = useNavigate()
@@ -126,27 +123,25 @@ const CarteraPersonalizada = () => {
   const cartera = obtenerCartera(perfil)
 
   const handleEmailSend = async () => {
-  try {
-    setEmailSent(false) // Resetear el estado de mensaje enviado al intentar enviar el email
-    await enviarEmail(perfil, cartera, email, location.state?.nombre)  // Pasa el nombre del usuario
-    setEmailSent(true)
-    setTimeout(() => {
-      navigate('/')  // Redirige al usuario al inicio después de un breve retraso
-    }, 5000) // Aumentar el timeout para que el mensaje de éxito sea visible más tiempo
-  } catch (error) {
-    console.error("Error al enviar el email:", error)
-    alert("Hubo un error al enviar el correo.")
+    try {
+      setEmailSent(false) // Resetear el estado de mensaje enviado al intentar enviar el email
+      await enviarEmail(perfil, cartera, email, location.state?.nombre)  // Pasa el nombre del usuario
+      setEmailSent(true)
+      setTimeout(() => {
+        navigate('/')  // Redirige al usuario al inicio después de un breve retraso
+      }, 5000) // Aumentar el timeout para que el mensaje de éxito sea visible más tiempo
+    } catch (error) {
+      console.error("Error al enviar el email:", error)
+      alert("Hubo un error al enviar el correo.")
+    }
   }
-}
-
-
 
   const handleDownloadPDF = async () => {
     const pdfBlob = await generarPDF(perfil, cartera)
     const url = URL.createObjectURL(pdfBlob)
     const link = document.createElement('a')
     link.href = url
-    link.download = cartera-${perfil}.pdf
+    link.download = `cartera-${perfil}.pdf`
     link.click()
     URL.revokeObjectURL(url)
   }
@@ -192,3 +187,4 @@ const CarteraPersonalizada = () => {
 }
 
 export default CarteraPersonalizada
+
