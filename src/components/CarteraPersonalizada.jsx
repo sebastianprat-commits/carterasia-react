@@ -127,7 +127,7 @@ const CarteraPersonalizada = () => {
   const handleEmailSend = async () => {
   try {
     setEmailSent(false) // Resetear el estado de mensaje enviado al intentar enviar el email
-    await enviarEmail(perfil, cartera, email)
+    await enviarEmail(perfil, cartera, email, location.state?.nombre)  // Pasa el nombre del usuario
     setEmailSent(true)
     setTimeout(() => {
       navigate('/')  // Redirige al usuario al inicio después de un breve retraso
@@ -137,6 +137,7 @@ const CarteraPersonalizada = () => {
     alert("Hubo un error al enviar el correo.")
   }
 }
+
 
 
   const handleDownloadPDF = async () => {
