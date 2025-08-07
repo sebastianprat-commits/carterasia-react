@@ -124,17 +124,19 @@ const CarteraPersonalizada = () => {
   const cartera = obtenerCartera(perfil)
 
   const handleEmailSend = async () => {
-    try {
-      await enviarEmail(perfil, cartera, email)
-      setEmailSent(true)
-      setTimeout(() => {
-        navigate('/')  // Redirige al usuario al inicio después de un breve retraso
-      }, 5000) // Aumentar el timeout para que el mensaje de éxito sea visible más tiempo
-    } catch (error) {
-      console.error("Error al enviar el email:", error)
-      alert("Hubo un error al enviar el correo.")
-    }
+  try {
+    setEmailSent(false) // Resetear el estado de mensaje enviado al intentar enviar el email
+    await enviarEmail(perfil, cartera, email)
+    setEmailSent(true)
+    setTimeout(() => {
+      navigate('/')  // Redirige al usuario al inicio después de un breve retraso
+    }, 5000) // Aumentar el timeout para que el mensaje de éxito sea visible más tiempo
+  } catch (error) {
+    console.error("Error al enviar el email:", error)
+    alert("Hubo un error al enviar el correo.")
   }
+}
+
 
   const handleDownloadPDF = async () => {
     const pdfBlob = await generarPDF(perfil, cartera)
