@@ -73,24 +73,34 @@ const enviarEmail = async (perfil, cartera, email) => {
   try {
     const pdfBlob = await generarPDF(perfil, cartera)
 
-    const formData = {
-      to_email: email,
-      nombre_usuario: 'Usuario',  // Este valor puede provenir del formulario si lo tienes
-      perfil_usuario: perfil,
-      cartera_1: cartera[0],
-      cartera_2: cartera[1],
-      cartera_3: cartera[2],
-      pdf_attachment: pdfBlob,  // El archivo PDF como Blob
-    }
+    // Convertir el Blob del PDF a base64
+    const reader = new FileReader()
+    reader.readAsDataURL(pdfBlob)
+    
+    reader.onloadend = async () => {
+      const base64Pdf = reader.result.split(',')[1] // Eliminar la parte "data:application/pdf;base64,"
 
-    // Usamos sendForm para enviar los datos directamente
-    await emailjs.send('service_toji81m', 'template_6us1g68', formData, 'y2-PNRI-wvGie9Qdb')
-    console.log("Correo enviado correctamente")
+      const formData = {
+        to_email: email,
+        nombre_usuario: 'Usuario',  // Este valor puede provenir del formulario si lo tienes
+        perfil_usuario: perfil,
+        cartera_1: cartera[0],
+        cartera_2: cartera[1],
+        cartera_3: cartera[2],
+        pdf_attachment: base64Pdf  // Pasar el PDF como base64
+      }
+
+      // Usamos sendForm para enviar los datos directamente
+      await emailjs.send('service_toji81m', 'template_6us1g68', formData, 'y2-PNRI-wvGie9Qdb')
+      console.log("Correo enviado correctamente")
+    }
+    
   } catch (error) {
     console.error("Error al enviar el email:", error)
     alert("Hubo un error al enviar el correo.")
   }
 }
+
 
 const CarteraPersonalizada = () => {
   const location = useLocation()
