@@ -33,7 +33,7 @@ const generarPDF = async (perfil, cartera) => {
 
     const fecha = new Date().toLocaleString()
 
-    page.drawText(Informe de Cartera Personalizada, {
+    page.drawText("Informe de Cartera Personalizada", {
       x: 50,
       y: 650,
       size: 18,
@@ -41,8 +41,8 @@ const generarPDF = async (perfil, cartera) => {
       color: rgb(0, 0, 0.6)
     })
 
-    page.drawText(Fecha: ${fecha}, { x: 50, y: 620, size: 12, font })
-    page.drawText(Perfil inversor detectado: ${perfil}, {
+    page.drawText("Fecha:" ${fecha}, { x: 50, y: 620, size: 12, font })
+    page.drawText("Perfil inversor detectado:" ${perfil}, {
       x: 50,
       y: 590,
       size: 14,
@@ -50,7 +50,7 @@ const generarPDF = async (perfil, cartera) => {
       color: rgb(0.2, 0.2, 0.2)
     })
 
-    page.drawText(Cartera sugerida:, { x: 50, y: 560, size: 13, font })
+    page.drawText("Cartera sugerida:", { x: 50, y: 560, size: 13, font })
 
     cartera.forEach((activo, i) => {
       page.drawText(- ${activo}, {
