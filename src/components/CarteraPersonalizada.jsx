@@ -69,7 +69,7 @@ const generarPDF = async (perfil, cartera) => {
   }
 }
 
-const enviarEmail = async (perfil, cartera, email) => {
+const enviarEmail = async (perfil, cartera, email, nombre) => {
   try {
     const pdfBlob = await generarPDF(perfil, cartera)
 
@@ -82,7 +82,7 @@ const enviarEmail = async (perfil, cartera, email) => {
 
       const formData = {
         to_email: email,
-        nombre_usuario: 'Usuario',  // Este valor puede provenir del formulario si lo tienes
+        nombre_usuario: nombre,  // Aquí pasamos el nombre del usuario
         perfil_usuario: perfil,
         cartera_1: cartera[0],
         cartera_2: cartera[1],
@@ -100,6 +100,7 @@ const enviarEmail = async (perfil, cartera, email) => {
     alert("Hubo un error al enviar el correo.")
   }
 }
+
 
 
 const CarteraPersonalizada = () => {
