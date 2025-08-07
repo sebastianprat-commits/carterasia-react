@@ -83,6 +83,7 @@ const enviarEmail = async (perfil, cartera, email) => {
       pdf_attachment: pdfBlob,  // El archivo PDF como Blob
     }
 
+    // Usamos sendForm para enviar los datos directamente
     await emailjs.send('service_toji81m', 'template_6us1g68', formData, 'y2-PNRI-wvGie9Qdb')
     console.log("Correo enviado correctamente")
   } catch (error) {
@@ -118,11 +119,21 @@ const CarteraPersonalizada = () => {
       setEmailSent(true)
       setTimeout(() => {
         navigate('/')  // Redirige al usuario al inicio después de un breve retraso
-      }, 2000)
+      }, 5000) // Aumentar el timeout para que el mensaje de éxito sea visible más tiempo
     } catch (error) {
       console.error("Error al enviar el email:", error)
       alert("Hubo un error al enviar el correo.")
     }
+  }
+
+  const handleDownloadPDF = async () => {
+    const pdfBlob = await generarPDF(perfil, cartera)
+    const url = URL.createObjectURL(pdfBlob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `cartera-${perfil}.pdf`
+    link.click()
+    URL.revokeObjectURL(url)
   }
 
   return (
@@ -142,7 +153,7 @@ const CarteraPersonalizada = () => {
         ) : (
           <>
             <button
-              onClick={() => generarPDF(perfil, cartera)}
+              onClick={handleDownloadPDF}
               className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
             >
               Descargar informe PDF
@@ -166,5 +177,6 @@ const CarteraPersonalizada = () => {
 }
 
 export default CarteraPersonalizada
+
 
 
