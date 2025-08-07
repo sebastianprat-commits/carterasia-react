@@ -32,7 +32,7 @@ const generarPDF = async (perfil, cartera) => {
 
     const fecha = new Date().toLocaleString()
 
-    page.drawText(`Informe de Cartera Personalizada`, {
+    page.drawText(Informe de Cartera Personalizada, {
       x: 50,
       y: 650,
       size: 18,
@@ -40,8 +40,8 @@ const generarPDF = async (perfil, cartera) => {
       color: rgb(0, 0, 0.6)
     })
 
-    page.drawText(`Fecha: ${fecha}`, { x: 50, y: 620, size: 12, font })
-    page.drawText(`Perfil inversor detectado: ${perfil}`, {
+    page.drawText(Fecha: ${fecha}, { x: 50, y: 620, size: 12, font })
+    page.drawText(Perfil inversor detectado: ${perfil}, {
       x: 50,
       y: 590,
       size: 14,
@@ -49,10 +49,10 @@ const generarPDF = async (perfil, cartera) => {
       color: rgb(0.2, 0.2, 0.2)
     })
 
-    page.drawText(`Cartera sugerida:`, { x: 50, y: 560, size: 13, font })
+    page.drawText(Cartera sugerida:, { x: 50, y: 560, size: 13, font })
 
     cartera.forEach((activo, i) => {
-      page.drawText(`- ${activo}`, {
+      page.drawText(- ${activo}, {
         x: 70,
         y: 540 - i * 20,
         size: 12,
@@ -101,15 +101,16 @@ const enviarEmail = async (perfil, cartera, email, nombre) => {
   }
 }
 
+
+
 const CarteraPersonalizada = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const perfil = location.state?.perfil
   const email = location.state?.email  // Asegúrate de que el email también se pase en la redirección
-  const nombre = location.state?.nombre // Pasa el nombre del usuario también
   const [emailSent, setEmailSent] = React.useState(false)
 
-  if (!perfil || !email || !nombre) {
+  if (!perfil || !email) {
     return (
       <div className="max-w-xl mx-auto mt-10 p-4 bg-white shadow rounded text-center">
         <h2 className="text-xl font-bold mb-4">No se ha podido determinar tu perfil</h2>
@@ -123,8 +124,30 @@ const CarteraPersonalizada = () => {
 
   const cartera = obtenerCartera(perfil)
 
-  const handleConfirmar = () => {
-    navigate('/confirmacion', { state: { perfil, cartera, email, nombre } })
+  const handleEmailSend = async () => {
+  try {
+    setEmailSent(false) // Resetear el estado de mensaje enviado al intentar enviar el email
+    await enviarEmail(perfil, cartera, email, location.state?.nombre)  // Pasa el nombre del usuario
+    setEmailSent(true)
+    setTimeout(() => {
+      navigate('/')  // Redirige al usuario al inicio después de un breve retraso
+    }, 5000) // Aumentar el timeout para que el mensaje de éxito sea visible más tiempo
+  } catch (error) {
+    console.error("Error al enviar el email:", error)
+    alert("Hubo un error al enviar el correo.")
+  }
+}
+
+
+
+  const handleDownloadPDF = async () => {
+    const pdfBlob = await generarPDF(perfil, cartera)
+    const url = URL.createObjectURL(pdfBlob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = cartera-${perfil}.pdf
+    link.click()
+    URL.revokeObjectURL(url)
   }
 
   return (
@@ -144,22 +167,27 @@ const CarteraPersonalizada = () => {
         ) : (
           <>
             <button
-              onClick={handleConfirmar}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              onClick={handleDownloadPDF}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
             >
-              Confirmar y enviar por email
+              Descargar informe PDF
             </button>
 
-            <Link to="/" className="text-blue-600 underline text-center">
-              Volver al inicio
-            </Link>
+            <button
+              onClick={handleEmailSend}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              Enviar por email
+            </button>
           </>
         )}
+
+        <Link to="/" className="text-blue-600 underline text-center">
+          Volver al inicio
+        </Link>
       </div>
     </div>
   )
 }
 
 export default CarteraPersonalizada
-
-
