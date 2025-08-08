@@ -6,7 +6,12 @@ import Formacion from './components/Formacion'
 import AdminLogin from './components/AdminLogin'
 import AdminPanel from './components/AdminPanel'
 import CarteraPersonalizada from './components/CarteraPersonalizada'
+import AvisoLegal from './components/AvisoLegal'
+import PoliticaPrivacidad from './components/PoliticaPrivacidad'
 
+// ...
+<Route path="/aviso-legal" element={<AvisoLegal />} />
+<Route path="/politica-privacidad" element={<PoliticaPrivacidad />} />
 // Logo
 import logo from './assets/logo-carterasai.png'
 
