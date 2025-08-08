@@ -8,14 +8,12 @@ import AdminPanel from './components/AdminPanel'
 import CarteraPersonalizada from './components/CarteraPersonalizada'
 import AvisoLegal from './components/AvisoLegal'
 import PoliticaPrivacidad from './components/PoliticaPrivacidad'
+import Footer from './components/Footer'
 
-// ...
-<Route path="/aviso-legal" element={<AvisoLegal />} />
-<Route path="/politica-privacidad" element={<PoliticaPrivacidad />} />
 // Logo
 import logo from './assets/logo-carterasai.png'
 
-// Util para clases condicionales
+// helper para clases condicionales
 function cx(...classes) {
   return classes.filter(Boolean).join(' ')
 }
@@ -42,9 +40,7 @@ function App() {
                     className={({ isActive }) =>
                       cx(
                         "px-3 py-2 rounded-lg text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
-                        isActive
-                          ? "bg-white text-blue-700"
-                          : "text-white/90 hover:bg-white/10 hover:text-white"
+                        isActive ? "bg-white text-blue-700" : "text-white/90 hover:bg-white/10 hover:text-white"
                       )
                     }
                   >
@@ -57,9 +53,7 @@ function App() {
                     className={({ isActive }) =>
                       cx(
                         "px-3 py-2 rounded-lg text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
-                        isActive
-                          ? "bg-white text-blue-700"
-                          : "text-white/90 hover:bg-white/10 hover:text-white"
+                        isActive ? "bg-white text-blue-700" : "text-white/90 hover:bg-white/10 hover:text-white"
                       )
                     }
                   >
@@ -72,9 +66,7 @@ function App() {
                     className={({ isActive }) =>
                       cx(
                         "px-3 py-2 rounded-lg text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
-                        isActive
-                          ? "bg-white text-blue-700"
-                          : "text-white/90 hover:bg-white/10 hover:text-white"
+                        isActive ? "bg-white text-blue-700" : "text-white/90 hover:bg-white/10 hover:text-white"
                       )
                     }
                   >
@@ -87,9 +79,7 @@ function App() {
                     className={({ isActive }) =>
                       cx(
                         "px-3 py-2 rounded-lg text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
-                        isActive
-                          ? "bg-white text-blue-700"
-                          : "text-white/90 hover:bg-white/10 hover:text-white"
+                        isActive ? "bg-white text-blue-700" : "text-white/90 hover:bg-white/10 hover:text-white"
                       )
                     }
                   >
@@ -102,9 +92,7 @@ function App() {
                     className={({ isActive }) =>
                       cx(
                         "px-3 py-2 rounded-lg text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
-                        isActive
-                          ? "bg-white text-blue-700"
-                          : "text-white bg-white/10 hover:bg-white/20"
+                        isActive ? "bg-white text-blue-700" : "text-white bg-white/10 hover:bg-white/20"
                       )
                     }
                   >
@@ -115,14 +103,6 @@ function App() {
             </div>
           </nav>
         </header>
-import Footer from './components/Footer'
-
-// ...
-<main className="flex-1 p-6">
-  {/* tus rutas */}
-</main>
-
-<Footer />
 
         {/* MAIN */}
         <main className="flex-1 p-6">
@@ -134,8 +114,12 @@ import Footer from './components/Footer'
             <Route path="/admin" element={<AdminLogin />} />
             <Route path="/admin/panel" element={<AdminPanel />} />
             <Route path="/cartera" element={<CarteraPersonalizada />} />
+            <Route path="/aviso-legal" element={<AvisoLegal />} />
+            <Route path="/politica-privacidad" element={<PoliticaPrivacidad />} />
           </Routes>
         </main>
+
+        <Footer />
       </div>
     </Router>
   )
