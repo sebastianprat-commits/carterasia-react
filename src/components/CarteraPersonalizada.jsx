@@ -24,25 +24,7 @@ const obtenerCartera = (perfil) => {
   return carteras[perfil] || []
 }
 
-const generarPDF = async (perfil, cartera) => {
-  const pdfDoc = await PDFDocument.create()
-  const page = pdfDoc.addPage([600, 720])
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
 
-  const fecha = new Date().toLocaleString('es-ES')
-
-  page.drawText('Informe de Cartera Personalizada', { x: 50, y: 680, size: 18, font, color: rgb(0.17,0.42,0.69) })
-  page.drawText(`Fecha: ${fecha}`, { x: 50, y: 655, size: 12, font, color: rgb(0.2,0.2,0.2) })
-  page.drawText(`Perfil inversor detectado: ${perfil}`, { x: 50, y: 630, size: 14, font })
-
-  page.drawText('Cartera sugerida:', { x: 50, y: 600, size: 13, font })
-  cartera.forEach((activo, i) => {
-    page.drawText(`- ${activo}`, { x: 70, y: 580 - i * 20, size: 12, font })
-  })
-
-  const pdfBytes = await pdfDoc.save()
-  return new Blob([pdfBytes], { type: 'application/pdf' })
-}
 
 const enviarEmail = async (perfil, cartera, email, nombre) => {
   const pdfBlob = await generarPDF(perfil, cartera)
