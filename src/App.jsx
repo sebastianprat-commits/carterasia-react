@@ -10,7 +10,7 @@ import CarteraPersonalizada from './components/CarteraPersonalizada'
 import AvisoLegal from './components/AvisoLegal'
 import PoliticaPrivacidad from './components/PoliticaPrivacidad'
 import Footer from './components/Footer'
-
+import DarkModeToggle from './components/DarkModeToggle'
 import { SITE_NAME, LOGO_PATH } from './constants/brand'
 
 function cx(...classes) {
@@ -25,6 +25,7 @@ function App() {
           <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
             <img src={LOGO_PATH} alt={`${SITE_NAME} Logo`} className="h-10 w-auto" />
             <h1 className="text-2xl font-bold tracking-wide">{SITE_NAME}</h1>
+            <div className="ml-auto"><DarkModeToggle></div>
           </div>
 
           <nav aria-label="primary" className="bg-blue-700/20 border-t border-blue-500/20">
