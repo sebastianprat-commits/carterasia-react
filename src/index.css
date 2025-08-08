@@ -6,7 +6,7 @@
   --font-sans: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, 'Helvetica Neue', Arial, 'Apple Color Emoji', 'Segoe UI Emoji';
 }
 
-html { font-family: var(--font-sans); }
+html { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial; }
 
 .btn {
   @apply inline-flex items-center justify-center rounded-lg px-4 py-2 font-medium transition shadow-soft;
