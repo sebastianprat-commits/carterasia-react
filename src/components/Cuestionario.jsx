@@ -147,3 +147,5 @@ export default function Cuestionario() {
     </form>
   )
 }
+
+export default Cuestionario
