@@ -118,6 +118,14 @@ function App() {
 
         <Footer />
       </div>
+import StickyCTA from './components/StickyCTA';
+
+// ...
+<main className="flex-1 p-6 dark:bg-gray-900 dark:text-gray-100">
+  {/* Routes */}
+</main>
+
+<StickyCTA />
     </Router>
   )
 }
