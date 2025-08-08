@@ -25,7 +25,38 @@ const obtenerCartera = (perfil) => {
   return carteras[perfil] || []
 }
 
+const generarPDF = async (perfil, cartera) => {
+  try {
+    const pdfDoc = await PDFDocument.create()
+    const page = pdfDoc.addPage([600, 720])
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
 
+    // Logo desde /public
+    const logoRes = await fetch(LOGO_PATH)
+    const logoBytes = await logoRes.arrayBuffer()
+    const png = await pdfDoc.embedPng(logoBytes)
+    const logoDims = png.scale(0.25)
+
+    page.drawRectangle({ x: 0, y: 680, width: 600, height: 40, color: rgb(0.17, 0.42, 0.69) })
+    page.drawImage(png, { x: 20, y: 685 - logoDims.height/2, width: logoDims.width, height: logoDims.height })
+    page.drawText(`Informe de Cartera — ${SITE_NAME}`, { x: 120, y: 690, size: 16, font, color: rgb(1,1,1) })
+
+    const fecha = new Date().toLocaleString()
+    page.drawText(`Fecha: ${fecha}`, { x: 50, y: 640, size: 12, font, color: rgb(0.2,0.2,0.2) })
+    page.drawText(`Perfil inversor detectado: ${perfil}`, { x: 50, y: 620, size: 14, font })
+
+    page.drawText('Cartera sugerida:', { x: 50, y: 590, size: 13, font })
+    cartera.forEach((activo, i) => {
+      page.drawText(`- ${activo}`, { x: 70, y: 570 - i*20, size: 12, font })
+    })
+
+    const pdfBytes = await pdfDoc.save()
+    return new Blob([pdfBytes], { type: 'application/pdf' })
+  } catch (e) {
+    console.error('Error al generar el PDF', e)
+    alert('Hubo un problema generando el PDF.')
+  }
+}
 
 
 const enviarEmail = async (perfil, cartera, email, nombre) => {
