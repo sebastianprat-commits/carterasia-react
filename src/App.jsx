@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom'
+import Home from './components/Home'; // <-- añadir esta línea arriba
 import Cuestionario from './components/Cuestionario'
 import Contacto from './components/Contacto'
 import Formacion from './components/Formacion'
@@ -12,7 +13,7 @@ function App() {
     <Router>
       <div className="min-h-screen bg-white text-gray-900">
         <header className="p-6 bg-blue-600 text-white text-center text-3xl font-bold">
-          Bienvenido a CarterasIA
+          Bienvenido a CarterasAI
         </header>
         <nav className="bg-blue-100 p-4 flex justify-center gap-6">
           <Link to="/">Inicio</Link>
@@ -23,7 +24,7 @@ function App() {
         </nav>
         <main className="p-6">
           <Routes>
-            <Route path="/" element={<p className="text-xl">Optimiza tu inversión con inteligencia artificial.</p>} />
+            <Route path="/" element={<Home />} /><p className="text-xl">Optimiza tu inversión con inteligencia artificial.</p>} />
             <Route path="/formacion" element={<Formacion />} />
             <Route path="/simulador" element={<Cuestionario />} />
             <Route path="/contacto" element={<Contacto />} />
@@ -39,4 +40,5 @@ function App() {
 }
 
 export default App
+
 
