@@ -1,3 +1,4 @@
+import { SITE_NAME, LOGO_PATH } from '../constants/brand'
 import React, { useState } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
