@@ -81,6 +81,43 @@ export default function Home() {
           </div>
         </div>
       </section>
+// dentro del componente Home, añade tras la sección "¿Cómo funciona?"
+<section className="py-12 bg-gray-50 dark:bg-gray-900">
+  <div className="max-w-6xl mx-auto px-6">
+    <h2 className="text-2xl font-bold text-center mb-10 text-gray-800 dark:text-gray-100">
+      Lo que dicen nuestros usuarios
+    </h2>
+    <div className="grid md:grid-cols-3 gap-6">
+      <Testimonial
+        name="Ana M."
+        role="Ahorro a largo plazo"
+        text="Me ayudó a entender mi perfil y a invertir con más tranquilidad. El PDF es súper claro."
+      />
+      <Testimonial
+        name="Javier R."
+        role="Inversor moderado"
+        text="La cartera propuesta encaja con mis objetivos. Muy fácil y rápido."
+      />
+      <Testimonial
+        name="Lucía G."
+        role="Primeras inversiones"
+        text="Buena guía inicial y educación básica. Ideal para empezar."
+      />
+    </div>
+  </div>
+</section>
+
+// añade el componente Testimonial al final del mismo archivo:
+function Testimonial({ name, role, text }) {
+  return (
+    <figure className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
+      <blockquote className="text-gray-700 dark:text-gray-200">“{text}”</blockquote>
+      <figcaption className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+        <span className="font-semibold text-gray-800 dark:text-gray-100">{name}</span> — {role}
+      </figcaption>
+    </figure>
+  );
+}
 
       {/* NOTA LEGAL CORTA */}
       <section className="py-8 bg-amber-50 border-y border-amber-200">
