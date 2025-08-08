@@ -110,6 +110,14 @@ function App() {
             </div>
           </nav>
         </header>
+import Footer from './components/Footer'
+
+// ...
+<main className="flex-1 p-6">
+  {/* tus rutas */}
+</main>
+
+<Footer />
 
         {/* MAIN */}
         <main className="flex-1 p-6">
