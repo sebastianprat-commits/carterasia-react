@@ -27,7 +27,7 @@ const obtenerCartera = (perfil) => {
 }
 
 // ======== Utilidad: formateo simple ========
-const pct = (n) => ${Number(n).toFixed(0)}%
+const pct = (n) => '${Number(n).toFixed(0)}%'
 
 // ======== Generador de PDF (texto simple, sin símbolos raros) ========
 async function generarPDF({ perfil, cartera, nombre }) {
