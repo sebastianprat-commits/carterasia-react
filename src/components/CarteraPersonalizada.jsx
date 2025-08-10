@@ -1,334 +1,307 @@
-
+// src/components/CarteraPersonalizada.jsx
 import React, { useState } from 'react'
-import { useLocation, useNavigate, Link } from 'react-router-dom'
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
+import { useLocation, Link, useNavigate } from 'react-router-dom'
+import { PDFDocument, rgb } from 'pdf-lib'
 import emailjs from '@emailjs/browser'
 
-// ---------- Cartera 10 posiciones con pesos y metadatos (educativo) ----------
-function cartera10(perfil) {
-  // Pesos por perfil (suman 100)
-  const presets = {
-    conservador: [25,20,20,10,8,7,5,3,1,1],
-    moderado:    [18,16,16,12,10,8,8,6,4,2],
-    dinamico:    [12,12,12,11,10,10,8,8,9,8], // algo más concentrado en RV
+// ======== Config EmailJS (ajusta si cambiaste algo) ========
+const EMAIL_SERVICE_ID = 'service_toji81m'
+const EMAIL_TEMPLATE_ID = 'template_6us1g68'
+const EMAIL_PUBLIC_KEY = 'y2-PNRI-wvGie9Qdb'
+
+// ======== Utilidad: cartera según perfil con 10 instrumentos (demo) ========
+const obtenerCarteraDetallada = (perfil) => {
+  const base = {
+    conservador: [
+      { ticker: 'IBGL', nombre: 'iShares Euro Government Bond 1-3yr', tipo: 'Renta fija GOV EUR', peso: 18 },
+      { ticker: 'VAGF', nombre: 'Vanguard Global Aggregate Bond', tipo: 'Renta fija Global', peso: 15 },
+      { ticker: 'XDCB', nombre: 'Xtrackers ESG EUR Corporate Bond', tipo: 'Renta fija Corp EUR', peso: 12 },
+      { ticker: 'AECE', nombre: 'Amundi Cash EUR', tipo: 'Monetario', peso: 10 },
+      { ticker: 'IGIL', nombre: 'iShares Global Inflation-Linked', tipo: 'Bonos ligados IPC', peso: 10 },
+      { ticker: 'EMB',  nombre: 'iShares J.P. Morgan EM Bond', tipo: 'Renta fija EM (USD hedged)', peso: 8 },
+      { ticker: 'IUSA', nombre: 'iShares S&P 500', tipo: 'RV USA', peso: 9 },
+      { ticker: 'EUNA', nombre: 'iShares Core MSCI Europe', tipo: 'RV Europa', peso: 7 },
+      { ticker: 'IEMG', nombre: 'iShares Core MSCI EM', tipo: 'RV Emergentes', peso: 6 },
+      { ticker: 'IWDP', nombre: 'iShares Global Dividend', tipo: 'Dividendos Global', peso: 5 },
+    ],
+    moderado: [
+      { ticker: 'IWRD', nombre: 'iShares MSCI World', tipo: 'RV Global', peso: 22 },
+      { ticker: 'CNDX', nombre: 'iShares NASDAQ 100', tipo: 'RV USA Tech', peso: 12 },
+      { ticker: 'VFEM', nombre: 'Vanguard FTSE Emerging Markets', tipo: 'RV Emergentes', peso: 10 },
+      { ticker: 'EUNA', nombre: 'iShares Core MSCI Europe', tipo: 'RV Europa', peso: 10 },
+      { ticker: 'VAGF', nombre: 'Vanguard Global Aggregate Bond', tipo: 'Renta fija Global', peso: 16 },
+      { ticker: 'XDCB', nombre: 'Xtrackers ESG EUR Corporate Bond', tipo: 'Renta fija Corp EUR', peso: 10 },
+      { ticker: 'IGIL', nombre: 'iShares Global Inflation-Linked', tipo: 'Bonos ligados IPC', peso: 6 },
+      { ticker: 'IUSV', nombre: 'iShares S&P 500 Value', tipo: 'Factor Value USA', peso: 6 },
+      { ticker: 'IMID', nombre: 'iShares MSCI World Mid-Cap', tipo: 'RV Global Mid', peso: 5 },
+      { ticker: 'IWDP', nombre: 'iShares Global Dividend', tipo: 'Dividendos Global', peso: 3 },
+    ],
+    dinámico: [
+      { ticker: 'IWRD', nombre: 'iShares MSCI World', tipo: 'RV Global', peso: 24 },
+      { ticker: 'CNDX', nombre: 'iShares NASDAQ 100', tipo: 'RV USA Tech', peso: 16 },
+      { ticker: 'ARKK', nombre: 'ARK Innovation ETF', tipo: 'Innovación', peso: 8 },
+      { ticker: 'IUSV', nombre: 'iShares S&P 500 Value', tipo: 'Factor Value USA', peso: 8 },
+      { ticker: 'IMID', nombre: 'iShares MSCI World Mid-Cap', tipo: 'RV Global Mid', peso: 8 },
+      { ticker: 'VFEM', nombre: 'Vanguard FTSE Emerging Markets', tipo: 'RV Emergentes', peso: 10 },
+      { ticker: 'EUNA', nombre: 'iShares Core MSCI Europe', tipo: 'RV Europa', peso: 10 },
+      { ticker: 'VAGF', nombre: 'Vanguard Global Aggregate Bond', tipo: 'Renta fija Global', peso: 8 },
+      { ticker: 'XDCB', nombre: 'Xtrackers ESG EUR Corporate Bond', tipo: 'Renta fija Corp EUR', peso: 5 },
+      { ticker: 'IGIL', nombre: 'iShares Global Inflation-Linked', tipo: 'Bonos ligados IPC', peso: 3 },
+    ],
   }
-  const w = presets[perfil] || presets.moderado
-
-  // Universo ejemplo (ETF/fondos globales)
-  const base = [
-    { ticker:'IWDA',  nombre:'iShares MSCI World UCITS ETF', tipo:'ETF RV Global', region:'Desarrollados', ter:0.20, nota:'Núcleo de renta variable global' },
-    { ticker:'EIMI',  nombre:'iShares Core MSCI EM IMI UCITS ETF', tipo:'ETF RV Emergentes', region:'Emergentes', ter:0.18, nota:'Diversifica hacia emergentes' },
-    { ticker:'ESPO',  nombre:'VanEck Video Gaming & eSports', tipo:'ETF Temático', region:'Global', ter:0.55, nota:'Temática crecimiento (ej.)' },
-    { ticker:'EUNA',  nombre:'iShares Core € Govt Bond UCITS', tipo:'ETF RF Soberana EUR', region:'EUR', ter:0.20, nota:'Columna defensiva en EUR' },
-    { ticker:'VUKE',  nombre:'Vanguard FTSE 100 UCITS ETF', tipo:'ETF RV UK', region:'UK', ter:0.09, nota:'Exposición a UK' },
-    { ticker:'CSPX',  nombre:'iShares Core S&P 500 UCITS', tipo:'ETF RV USA', region:'USA', ter:0.07, nota:'Exposición USA eficiente' },
-    { ticker:'AGGH',  nombre:'iShares Core Global Aggregate Bond', tipo:'ETF RF Global', region:'Global', ter:0.10, nota:'Bonos globales agregados' },
-    { ticker:'EMAG',  nombre:'iShares J.P. Morgan $ EM Bond', tipo:'ETF RF EM USD', region:'Emergentes', ter:0.25, nota:'Bonos emergentes (USD)' },
-    { ticker:'GLD',   nombre:'SPDR Gold Trust (proxy)', tipo:'Oro', region:'Global', ter:0.40, nota:'Cobertura e inflación' },
-    { ticker:'CASH',  nombre:'Amundi Cash EUR', tipo:'Monetario', region:'EUR', ter:0.10, nota:'Liquidez táctica' },
-  ]
-
-  // Ajuste por perfil hacia RF/RV (simple)
-  const tilt = perfil === 'conservador' ? [0.8,0.6,0.3,1.3,0.7,0.7,1.2,1.1,0.8,1.3]
-            : perfil === 'dinamico'     ? [1.2,1.2,1.3,0.6,1.0,1.2,0.8,0.8,1.0,0.4]
-            : [1,1,1,1,1,1,1,1,1,1]
-
-  let total = 0
-  const items = base.map((b,i) => {
-    const peso = Math.max(0, Math.round(w[i] * tilt[i]))
-    total += peso
-    return { ...b, peso }
-  })
-  // Normalizar a 100
-  return items.map(it => ({ ...it, peso: Math.round((it.peso/total)*100) }))
+  return base[perfil] || []
 }
 
-// ---------- Gráficos simples (barras / línea) en pdf-lib ----------
-function drawBarChart(page, { x=50, y=260, width=500, height=140, data=[] }) {
-  const max = Math.max(...data.map(d=>d.value), 1)
-  const barW = width / data.length
-  data.forEach((d,i) => {
-    const h = (d.value / max) * height
-    page.drawRectangle({
-      x: x + i*barW + 4,
-      y,
-      width: barW - 8,
-      height: h,
-      color: rgb(0.16, 0.44, 0.78)
-    })
-  })
+// ======== Explicación del perfil (demo) ========
+const explicacionPerfil = (perfil) => {
+  const textos = {
+    conservador:
+      'Perfil conservador: prioriza la preservación de capital y una volatilidad baja. La cartera favorece renta fija de calidad, monetarios y una exposición moderada a renta variable para protegerse de la inflación.',
+    moderado:
+      'Perfil moderado: busca equilibrio entre crecimiento y estabilidad. Combina renta variable global con renta fija diversificada para mantener la volatilidad en un rango manejable.',
+    dinámico:
+      'Perfil dinámico: persigue crecimiento a largo plazo aceptando mayor volatilidad. Pondera más la renta variable global, factores (tecnología, value, mid-cap) y mantiene algo de renta fija para diversificación.',
+  }
+  return textos[perfil] || 'Perfil no clasificado.'
 }
 
-function drawLineChart(page, { x=50, y=260, width=500, height=140, series=[] }) {
-  // series: [{name, values:[...] , color: rgb()}]
-  const max = Math.max(...series.flatMap(s=>s.values))
-  const min = Math.min(...series.flatMap(s=>s.values))
-  const n = Math.max(...series.map(s=>s.values.length))
-  const dx = width / (n-1 || 1)
+// ======== Utilidad: formateo simple ========
+const pct = (n) => ${Number(n).toFixed(0)}%
 
-  series.forEach(s => {
-    let prev = null
-    s.values.forEach((v, i) => {
-      const px = x + i*dx
-      const py = y + ((v - min) / (max - min || 1)) * height
-      if (prev) {
-        page.drawLine({ start: prev, end: {x:px,y:py}, thickness: 1.2, color: s.color })
-      }
-      prev = { x:px, y:py }
-    })
-  })
-}
+// ======== Generador de PDF extenso con fuente Unicode y logo ========
+async function generarPDFExtenso({ nombre = '', perfil, volObjetivo = '', cartera = [] }) {
+  const pdf = await PDFDocument.create()
 
-// ---------- Texto multi-línea ----------
-function drawTextBlock(page, text, { x, y, width=500, font, size=11, leading=14 }) {
-  const words = text.split(/\s+/)
-  let line = ''
-  let yy = y
-  words.forEach((w, idx) => {
-    const test = line ? (line + ' ' + w) : w
-    const testWidth = font.widthOfTextAtSize(test, size)
-    if (testWidth > width) {
-      page.drawText(line, { x, y: yy, size, font, color: rgb(0,0,0) })
-      yy -= leading
-      line = w
-    } else {
-      line = test
+  // Fuente Unicode
+  const fontBytes = await fetch('/fonts/Inter-Regular.ttf').then(r => r.arrayBuffer())
+  const font = await pdf.embedFont(fontBytes, { subset: true })
+
+  // Logo (opcional)
+  let logoImage
+  try {
+    const logoBytes = await fetch('/logo-carterasai.png').then(r => r.arrayBuffer())
+    logoImage = await pdf.embedPng(logoBytes)
+  } catch (e) {
+    // si no está el logo, seguimos sin romper
+    logoImage = null
+  }
+
+  const addPage = () => {
+    const page = pdf.addPage([600, 800])
+    let y = 760
+    const left = 50
+    const text = (t, size = 12, color = rgb(0, 0, 0), x = left) => {
+      page.drawText(String(t ?? ''), { x, y, size, font, color })
+      y -= size + 6
     }
-    if (idx === words.length - 1) {
-      page.drawText(line, { x, y: yy, size, font, color: rgb(0,0,0) })
+    const spacer = (h = 12) => { y -= h }
+    const rule = () => {
+      page.drawLine({
+        start: { x: left, y: y + 8 },
+        end: { x: 550, y: y + 8 },
+        thickness: 1,
+        color: rgb(0.85, 0.85, 0.85),
+      })
+      y -= 10
     }
+    const ensure = (need = 80) => {
+      if (y < need) return addPage()
+      return { page, y, left, text, spacer, rule, ensure }
+    }
+    return { page, y, left, text, spacer, rule, ensure }
+  }
+
+  // ——— Portada
+  let ctx = addPage()
+  if (logoImage) {
+    const w = 120
+    const h = (logoImage.height / logoImage.width) * w
+    ctx.page.drawImage(logoImage, { x: ctx.left, y: ctx.y - h + 20, width: w, height: h })
+  }
+  ctx.text('Informe de Cartera — CarterasAI', 20, rgb(0, 0, 0.6))
+  const fecha = new Date().toLocaleString()
+  ctx.text(Fecha: ${fecha}, 11, rgb(0.25, 0.25, 0.25))
+  if (nombre) ctx.text(Usuario: ${nombre}, 11)
+  ctx.spacer(8)
+  ctx.rule()
+  ctx.text(Perfil inversor detectado: ${perfil}, 14)
+  if (volObjetivo) ctx.text(Volatilidad objetivo: ${volObjetivo}, 12)
+  ctx.spacer(6)
+  ctx.text('Resumen del enfoque', 14)
+  ctx.text(explicacionPerfil(perfil), 12)
+
+  // ——— Cartera sugerida (resumen)
+  ctx.spacer(10)
+  ctx.text('Cartera sugerida (resumen de asignaciones)', 14)
+  const items = cartera.length ? cartera : []
+  if (!items.length) ctx.text('No hay instrumentos para este perfil.', 12)
+  items.forEach((it) => {
+    ctx = ctx.ensure(40)
+    ctx.text(• ${it.nombre} (${it.ticker}) — ${it.tipo} — ${pct(it.peso)})
   })
+
+  // ——— Tabla detallada
+  ctx = ctx.ensure(140)
+  ctx.spacer(8)
+  ctx.text('Detalle de instrumentos', 14)
+  const headerY = ctx.y
+  const drawAt = (txt, x, size = 12) =>
+    ctx.page.drawText(String(txt ?? ''), { x, y: ctx.y, size, font, color: rgb(0, 0, 0) })
+  // Cabecera
+  drawAt('Instrumento', ctx.left)
+  drawAt('Ticker', ctx.left + 280)
+  drawAt('Tipo', ctx.left + 340)
+  drawAt('Peso', ctx.left + 500)
+  ctx.y -= 14
+  ctx.page.drawLine({ start: { x: ctx.left, y: ctx.y + 8 }, end: { x: 550, y: ctx.y + 8 }, color: rgb(0.8, 0.8, 0.8), thickness: 1 })
+  ctx.y -= 8
+  // Filas
+  items.forEach((it) => {
+    ctx = ctx.ensure(40)
+    drawAt(it.nombre, ctx.left)
+    drawAt(it.ticker, ctx.left + 280)
+    drawAt(it.tipo, ctx.left + 340)
+    drawAt(pct(it.peso), ctx.left + 500)
+    ctx.y -= 16
+  })
+
+  // ——— Próximos pasos (página nueva si hace falta)
+  ctx = ctx.ensure(160)
+  ctx.spacer(12)
+  ctx.text('Próximos pasos', 14)
+  ctx.text('1) Revisa la asignación y ajusta tu perfil si cambian tus objetivos o tu situación personal.', 12)
+  ctx.text('2) Considera una revisión anual o ante cambios relevantes de mercado.', 12)
+  ctx.text('3) Formación continua: consulta el área de Formación para comprender riesgos y métricas.', 12)
+  ctx.spacer(12)
+  ctx.text('Aviso', 12, rgb(0.4, 0, 0))
+  ctx.text('Este informe es educativo y no constituye recomendación personalizada. Valora consultar a un asesor registrado.', 11, rgb(0.4, 0, 0))
+
+  const bytes = await pdf.save()
+  return new Blob([bytes], { type: 'application/pdf' })
 }
 
-// ========= Helpers para texto seguro en PDF (evita “≈”, “€” y Unicode no-ASCII) =========
-const sanitizeForPdf = (str = '') =>
-  String(str)
-    .replace(/€/g, 'EUR')
-    .replace(/≈/g, '~')              // “aprox.” también sirve si prefieres
-    .replace(/[^\x20-\x7E]/g, '');   // opcional: elimina otros no-ASCII
-
-const drawSafeText = (page, text, options) => {
-  page.drawText(sanitizeForPdf(text), options);
-};
-
-// ========= Generador de PDF (multi-sección) con texto saneado =========
-async function generarPDFCompleto({ nombre = '', perfil, volObjetivo = '', cartera = [] }) {
-  const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage([600, 780]);
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-
-  const left = 50;
-  let y = 740;
-
-  // Cabecera / Portada
-  drawSafeText(page, 'Informe de Cartera Personalizada — CarterasAI', {
-    x: left, y, size: 18, font, color: rgb(0, 0, 0)
-  });
-  y -= 30;
-
-  const fecha = new Date().toLocaleString();
-  drawSafeText(page, Fecha: ${fecha}, { x: left, y, size: 11, font, color: rgb(0.2,0.2,0.2) });
-  y -= 18;
-
-  if (nombre) {
-    drawSafeText(page, Usuario: ${nombre}, { x: left, y, size: 11, font });
-    y -= 22;
-  }
-
-  // Resumen de perfil
-  drawSafeText(page, 'Resumen de perfil', { x: left, y, size: 14, font });
-  y -= 18;
-
-  drawSafeText(page, Perfil inversor detectado: ${perfil}, { x: left, y, size: 12, font });
-  y -= 16;
-
-  if (volObjetivo) {
-    // Ojo: si antes ponías “≈20%”, aquí se convertirá en “~20%”
-    drawSafeText(page, Volatilidad objetivo: ${volObjetivo}, { x: left, y, size: 12, font });
-    y -= 22;
-  } else {
-    y -= 10;
-  }
-
-  // Cartera sugerida (lista)
-  drawSafeText(page, 'Cartera sugerida (resumen):', { x: left, y, size: 14, font });
-  y -= 16;
-
-  const items = cartera.length ? cartera : ['(sin elementos)'];
-  items.forEach((activo) => {
-    drawSafeText(page, • ${activo}, { x: left + 18, y, size: 12, font });
-    y -= 16;
-  });
-
-  // Nueva página para tabla simple si no cabe
-  if (y < 120) {
-    y = 740;
-    const page2 = pdfDoc.addPage([600, 780]);
-    // Redirige page al nuevo lienzo
-    page.drawLine; // no hace nada, sólo evita lints
-    // Reasignamos la referencia de página a la nueva
-    // (truco: simplemente volvemos a usar variable "page" con el nuevo page2)
-    // En JS, usa otra variable:
-    const p2 = page2;
-
-    drawSafeText(p2, 'Detalle de instrumentos (tabla rápida)', {
-      x: left, y, size: 14, font
-    });
-    y -= 22;
-
-    // Cabecera de tabla
-    drawSafeText(p2, 'Instrumento', { x: left,       y, size: 12, font });
-    drawSafeText(p2, 'Tipo',       { x: left + 260,  y, size: 12, font });
-    drawSafeText(p2, 'Nota',       { x: left + 360,  y, size: 12, font });
-    y -= 14;
-
-    p2.drawLine({
-      start: { x: left, y: y + 8 }, end: { x: 550, y: y + 8 },
-      color: rgb(0.8,0.8,0.8), thickness: 1
-    });
-    y -= 4;
-
-    // Relleno de tabla (muy básico; deduce tipo por nombre)
-    items.forEach((activo) => {
-      const tipo = activo.toLowerCase().includes('bond') || activo.toLowerCase().includes('gov') ? 'Renta fija' : 'Renta variable';
-      drawSafeText(p2, activo, { x: left, y, size: 11, font });
-      drawSafeText(p2, tipo,   { x: left + 260, y, size: 11, font });
-      drawSafeText(p2, 'ETF/Fondo', { x: left + 360, y, size: 11, font });
-      y -= 16;
-    });
-  } else {
-    // Si queda espacio, metemos una “tabla corta” en la misma página
-    y -= 10;
-    drawSafeText(page, 'Detalle de instrumentos (tabla rápida)', {
-      x: left, y, size: 14, font
-    });
-    y -= 22;
-
-    drawSafeText(page, 'Instrumento', { x: left,       y, size: 12, font });
-    drawSafeText(page, 'Tipo',        { x: left + 260, y, size: 12, font });
-    drawSafeText(page, 'Nota',        { x: left + 360, y, size: 12, font });
-    y -= 14;
-
-    page.drawLine({
-      start: { x: left, y: y + 8 }, end: { x: 550, y: y + 8 },
-      color: rgb(0.8,0.8,0.8), thickness: 1
-    });
-    y -= 4;
-
-    items.forEach((activo) => {
-      const tipo = activo.toLowerCase().includes('bond') || activo.toLowerCase().includes('gov') ? 'Renta fija' : 'Renta variable';
-      drawSafeText(page, activo, { x: left, y, size: 11, font });
-      drawSafeText(page, tipo,   { x: left + 260, y, size: 11, font });
-      drawSafeText(page, 'ETF/Fondo', { x: left + 360, y, size: 11, font });
-      y -= 16;
-    });
-  }
-
-  const pdfBytes = await pdfDoc.save();
-  return new Blob([pdfBytes], { type: 'application/pdf' });
-}
-
-// ---------- Componente original con nuevos textos PDF ----------
-const obtenerCarteraBasica = (perfil) => {
-  // mantenemos compat con tu UI de lista simple (3 líneas)
-  const full = cartera10(perfil)
-  return full.slice(0,3).map(c => `${c.ticker} — ${c.nombre}`)
-}
-
+// ======== Componente principal ========
 export default function CarteraPersonalizada() {
   const location = useLocation()
   const navigate = useNavigate()
   const perfil = location.state?.perfil
   const email = location.state?.email
-  const nombre = location.state?.nombre
-  const volObjetivo = location.state?.volObjetivo
+  const nombre = location.state?.nombre || ''
 
   const [emailSent, setEmailSent] = useState(false)
+  const [sending, setSending] = useState(false)
 
   if (!perfil) {
     return (
-      <div className="max-w-xl mx-auto mt-10 p-4 bg-white dark:bg-gray-900 shadow rounded text-center">
+      <div className="max-w-xl mx-auto mt-10 p-4 bg-white shadow rounded text-center">
         <h2 className="text-xl font-bold mb-4">No se ha podido determinar tu perfil</h2>
+        <p className="mb-4">Por favor, rellena el cuestionario para recibir tu cartera sugerida.</p>
         <Link to="/simulador" className="text-blue-600 underline">Volver al simulador</Link>
       </div>
     )
   }
 
-  const cartera = obtenerCarteraBasica(perfil)
+  const cartera = obtenerCarteraDetallada(perfil)
 
   const handleDownloadPDF = async () => {
-    const blob = await generarPDFCompleto({ nombre, perfil, volObjetivo })
+    const blob = await generarPDFExtenso({ nombre, perfil, volObjetivo: '', cartera })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `CarterasAI_informe_${perfil}.pdf`
+    a.download = CarterasAI-informe-${perfil}.pdf
     a.click()
     URL.revokeObjectURL(url)
   }
 
-  const handleEmailSend = async () => {
+  const handleSendEmail = async () => {
+    if (!email) {
+      alert('No hay email en el estado de navegación. Añade el campo email en el cuestionario.')
+      return
+    }
     try {
-      setEmailSent(false)
-      const blob = await generarPDFCompleto({ nombre, perfil, volObjetivo })
+      setSending(true)
+      const blob = await generarPDFExtenso({ nombre, perfil, volObjetivo: '', cartera })
+
+      // Convertir a base64
       const reader = new FileReader()
       reader.readAsDataURL(blob)
       reader.onloadend = async () => {
-        const base64Pdf = String(reader.result).split(',')[1] || ''
+        const base64Pdf = reader.result.split(',')[1]
+
         await emailjs.send(
-          'service_toji81m',
-          'template_6us1g68',
+          EMAIL_SERVICE_ID,
+          EMAIL_TEMPLATE_ID,
           {
             to_email: email,
-            nombre_usuario: nombre || '',
+            nombre_usuario: nombre,
             perfil_usuario: perfil,
-            cartera_1: cartera[0] || '',
-            cartera_2: cartera[1] || '',
-            cartera_3: cartera[2] || '',
-            pdf_attachment: base64Pdf,
+            // por si tu plantilla usa 3 campos concretos:
+            cartera_1: cartera[0]?.nombre || '',
+            cartera_2: cartera[1]?.nombre || '',
+            cartera_3: cartera[2]?.nombre || '',
+            // y además un campo html con toda la cartera:
+            cartera_html: `<ul>${cartera.map(i => <li>${i.nombre} (${i.ticker}) — ${i.tipo} — ${i.peso}%</li>).join('')}</ul>`,
+            pdf_attachment: base64Pdf
           },
-          'y2-PNRI-wvGie9Qdb'
+          EMAIL_PUBLIC_KEY
         )
+
         setEmailSent(true)
-        setTimeout(()=>navigate('/'), 5000)
+        setSending(false)
+        setTimeout(() => navigate('/'), 5000)
       }
     } catch (e) {
       console.error(e)
-      alert('No se pudo enviar el email.')
+      setSending(false)
+      alert('Hubo un problema enviando el email.')
     }
   }
 
   return (
-    <div className="max-w-xl mx-auto mt-10 p-4 bg-white dark:bg-gray-900 shadow rounded">
-      <h2 className="text-xl font-bold mb-2">
+    <div className="max-w-3xl mx-auto mt-10 p-6 bg-white dark:bg-gray-900 dark:text-gray-100 rounded-xl shadow">
+      <h2 className="text-2xl font-bold mb-4">
         Tu perfil inversor es: <span className="capitalize text-blue-600">{perfil}</span>
       </h2>
-      {volObjetivo && (
-        <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-          Objetivo de volatilidad: <strong>{volObjetivo}</strong>
+
+      <p className="text-gray-700 dark:text-gray-300 mb-4">
+        {explicacionPerfil(perfil)}
+      </p>
+
+      <h3 className="text-lg font-semibold mb-2">Cartera sugerida (10 instrumentos):</h3>
+      <ul className="list-disc ml-6 text-gray-800 dark:text-gray-200">
+        {cartera.map((it, i) => (
+          <li key={i}>
+            <strong>{it.nombre}</strong> ({it.ticker}) — {it.tipo} — {pct(it.peso)}
+          </li>
+        ))}
+      </ul>
+
+      <div className="mt-6 flex flex-col sm:flex-row gap-3">
+        <button
+          onClick={handleDownloadPDF}
+          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+        >
+          Descargar informe PDF
+        </button>
+
+        <button
+          onClick={handleSendEmail}
+          disabled={sending}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-60"
+        >
+          {sending ? 'Enviando…' : 'Enviar por email'}
+        </button>
+      </div>
+
+      {emailSent && (
+        <p className="mt-3 text-green-600">
+          Email enviado correctamente. En unos segundos volverás al inicio.
         </p>
       )}
 
-      <h3 className="text-lg font-semibold mb-2">Cartera sugerida (resumen):</h3>
-      <ul className="list-disc ml-6 text-gray-800 dark:text-gray-100">
-        {cartera.map((activo, i) => <li key={i}>{activo}</li>)}
-      </ul>
-
-      <div className="mt-6 flex flex-col gap-3">
-        {emailSent
-          ? <p className="text-green-600">Email enviado correctamente. Redirigiendo…</p>
-          : <>
-              <button onClick={handleDownloadPDF} className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700">
-                Descargar informe completo (PDF)
-              </button>
-              {email && (
-                <button onClick={handleEmailSend} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                  Enviar por email
-                </button>
-              )}
-            </>
-        }
-        <Link to="/" className="text-blue-600 underline text-center">Volver al inicio</Link>
+      <div className="mt-6">
+        <Link to="/" className="text-blue-600 underline">Volver al inicio</Link>
       </div>
-    </div>
-  )
+    </div>
+  )
 }
