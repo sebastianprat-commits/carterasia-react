@@ -66,7 +66,7 @@ const explicacionPerfil = (perfil) => {
 }
 
 // ======== Utilidad: formateo simple ========
-const pct = (n) => ${Number(n).toFixed(0)}%
+const pct = (n) => '${Number(n).toFixed(0)}%'
 
 // ======== Generador de PDF extenso con fuente Unicode y logo ========
 async function generarPDFExtenso({ nombre = '', perfil, volObjetivo = '', cartera = [] }) {
