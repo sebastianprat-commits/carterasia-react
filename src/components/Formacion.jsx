@@ -92,6 +92,7 @@ export default function Formacion() {
             <MiniCard title="Interés compuesto" text="Reinvertir beneficios acelera el crecimiento con el paso del tiempo." />
             <MiniCard title="DCA (aportaciones periódicas)" text="Suaviza el precio de entrada y reduce el impacto de la volatilidad." />
             <MiniCard title="Disciplina" text="Seguir el plan importa más que predecir el mercado." />
+            <div className="mt-8"><ChartLongTerm /></div>
           </div>
         </div>
       </section>
