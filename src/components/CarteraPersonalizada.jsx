@@ -100,95 +100,132 @@ function drawTextBlock(page, text, { x, y, width=500, font, size=11, leading=14 
   })
 }
 
-// ---------- PDF largo y con secciones ----------
-async function generarPDFCompleto({ nombre, perfil, volObjetivo }) {
-  const pdf = await PDFDocument.create()
-  const font = await pdf.embedFont(StandardFonts.Helvetica)
-  const fontB = await pdf.embedFont(StandardFonts.HelveticaBold)
+// ========= Helpers para texto seguro en PDF (evita “≈”, “€” y Unicode no-ASCII) =========
+const sanitizeForPdf = (str = '') =>
+  String(str)
+    .replace(/€/g, 'EUR')
+    .replace(/≈/g, '~')              // “aprox.” también sirve si prefieres
+    .replace(/[^\x20-\x7E]/g, '');   // opcional: elimina otros no-ASCII
 
-  const cartera = cartera10(perfil)
-  const pesos = cartera.map(c => ({ label: c.ticker, value: c.peso }))
+const drawSafeText = (page, text, options) => {
+  page.drawText(sanitizeForPdf(text), options);
+};
 
-  // Página 1: Portada / Resumen
-  {
-    const p = pdf.addPage([595, 842]) // A4
-    p.drawText('Informe personalizado', { x: 50, y: 790, size: 20, font: fontB })
-    p.drawText(`Nombre: ${nombre || '-'}`, { x: 50, y: 760, size: 12, font })
-    p.drawText(`Perfil inversor: ${perfil}`, { x: 50, y: 740, size: 12, font })
-    p.drawText(`Objetivo de volatilidad: ${volObjetivo}`, { x: 50, y: 720, size: 12, font })
+// ========= Generador de PDF (multi-sección) con texto saneado =========
+async function generarPDFCompleto({ nombre = '', perfil, volObjetivo = '', cartera = [] }) {
+  const pdfDoc = await PDFDocument.create();
+  const page = pdfDoc.addPage([600, 780]);
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-    p.drawText('Cartera sugerida (10 posiciones):', { x: 50, y: 690, size: 13, font: fontB })
-    cartera.slice(0,6).forEach((c,i) => {
-      p.drawText(`${String(c.peso).padStart(2," ")}%  ${c.ticker}  ${c.nombre}`, { x: 60, y: 665 - i*16, size: 11, font })
-    })
-    cartera.slice(6).forEach((c,i) => {
-      p.drawText(`${String(c.peso).padStart(2," ")}%  ${c.ticker}  ${c.nombre}`, { x: 320, y: 665 - i*16, size: 11, font })
-    })
+  const left = 50;
+  let y = 740;
 
-    // Barras de pesos
-    p.drawText('Distribución por pesos', { x: 50, y: 300, size: 12, font: fontB })
-    drawBarChart(p, { x: 50, y: 150, width: 495, height: 130, data: pesos })
-    // Ejes simples
-    p.drawLine({ start:{x:50,y:150}, end:{x:545,y:150}, thickness:0.5, color: rgb(0,0,0)})
-    p.drawLine({ start:{x:50,y:150}, end:{x:50,y:280}, thickness:0.5, color: rgb(0,0,0)})
+  // Cabecera / Portada
+  drawSafeText(page, 'Informe de Cartera Personalizada — CarterasAI', {
+    x: left, y, size: 18, font, color: rgb(0, 0, 0)
+  });
+  y -= 30;
 
-    // Disclaimer
-    drawTextBlock(p,
-      'Este informe es de carácter educativo. No constituye recomendación de inversión personalizada. ' +
-      'Los pesos y activos son ilustrativos y pueden no ajustarse a tu situación fiscal o patrimonial. ' +
-      'Para una propuesta a medida, considera una sesión de asesoría.',
-      { x:50, y:100, width:495, font, size:10, leading:13 })
+  const fecha = new Date().toLocaleString();
+  drawSafeText(page, Fecha: ${fecha}, { x: left, y, size: 11, font, color: rgb(0.2,0.2,0.2) });
+  y -= 18;
+
+  if (nombre) {
+    drawSafeText(page, Usuario: ${nombre}, { x: left, y, size: 11, font });
+    y -= 22;
   }
 
-  // Página 2: Metodología y explicación del perfil
-  {
-    const p = pdf.addPage([595, 842])
-    p.drawText('Metodología y perfil', { x: 50, y: 790, size: 16, font: fontB })
+  // Resumen de perfil
+  drawSafeText(page, 'Resumen de perfil', { x: left, y, size: 14, font });
+  y -= 18;
 
-    const texto =
-      `Tu perfil (“${perfil}”) se estima a partir de tu edad, horizonte temporal, experiencia y tolerancia a pérdidas, ` +
-      `además de tu objetivo (conservar, batir inflación, crecimiento...). El rango de volatilidad objetivo es ${volObjetivo}. ` +
-      `La cartera combina renta variable global (núcleo desarrollado + emergentes), renta fija agregada y soberana en EUR, ` +
-      `exposición temática y activos de cobertura (oro y monetario). La asignación busca diversificar por región, factor y clase de activo.`
-    drawTextBlock(p, texto, { x: 50, y: 750, width: 495, font, size: 12, leading: 16 })
+  drawSafeText(page, Perfil inversor detectado: ${perfil}, { x: left, y, size: 12, font });
+  y -= 16;
 
-    p.drawText('Evolución simulada (educativa):', { x: 50, y: 500, size: 12, font: fontB })
-    // Serie sintética: benchmark vs cartera (normalizada 100 = inicio)
-    const carteraSeries = [100, 101, 99, 102, 104, 103, 106, 108, 107, 110, 112, 115]
-    const benchSeries   = [100, 101, 100, 101, 102, 101, 103, 104, 104, 105, 106, 107]
-    drawLineChart(p, {
-      x:50, y:300, width: 495, height: 160,
-      series: [
-        { name:'Cartera', values: carteraSeries, color: rgb(0.16, 0.44, 0.78) },
-        { name:'Benchmark', values: benchSeries, color: rgb(0.10, 0.7, 0.4) },
-      ]
-    })
-    p.drawText('100 → 115 (cartera sim.)', { x: 50, y: 280, size: 10, font })
-    p.drawText('100 → 107 (benchmark sim.)', { x: 180, y: 280, size: 10, font })
+  if (volObjetivo) {
+    // Ojo: si antes ponías “≈20%”, aquí se convertirá en “~20%”
+    drawSafeText(page, Volatilidad objetivo: ${volObjetivo}, { x: left, y, size: 12, font });
+    y -= 22;
+  } else {
+    y -= 10;
   }
 
-  // Página 3: Detalle de posiciones
-  {
-    const p = pdf.addPage([595, 842])
-    p.drawText('Detalle de posiciones', { x: 50, y: 790, size: 16, font: fontB })
+  // Cartera sugerida (lista)
+  drawSafeText(page, 'Cartera sugerida (resumen):', { x: left, y, size: 14, font });
+  y -= 16;
 
-    let yy = 760
-    cartera.forEach((c, i) => {
-      p.drawText(`${i+1}. ${c.ticker} – ${c.nombre}`, { x: 50, y: yy, size: 12, font: fontB })
-      p.drawText(`${c.tipo} | Región: ${c.region} | TER: ${c.ter.toFixed(2)}% | Peso: ${c.peso}%`, { x: 50, y: yy-14, size: 11, font })
-      drawTextBlock(p, `Razonamiento: ${c.nota}.`, { x: 50, y: yy-30, width: 495, font, size: 11, leading: 14 })
-      yy -= 58
-      if (yy < 80) {
-        // nueva página si no cabe
-        yy = 760
-        p = pdf.addPage([595,842])
-        p.drawText('Detalle de posiciones (cont.)', { x: 50, y: 790, size: 16, font: fontB })
-      }
-    })
+  const items = cartera.length ? cartera : ['(sin elementos)'];
+  items.forEach((activo) => {
+    drawSafeText(page, • ${activo}, { x: left + 18, y, size: 12, font });
+    y -= 16;
+  });
+
+  // Nueva página para tabla simple si no cabe
+  if (y < 120) {
+    y = 740;
+    const page2 = pdfDoc.addPage([600, 780]);
+    // Redirige page al nuevo lienzo
+    page.drawLine; // no hace nada, sólo evita lints
+    // Reasignamos la referencia de página a la nueva
+    // (truco: simplemente volvemos a usar variable "page" con el nuevo page2)
+    // En JS, usa otra variable:
+    const p2 = page2;
+
+    drawSafeText(p2, 'Detalle de instrumentos (tabla rápida)', {
+      x: left, y, size: 14, font
+    });
+    y -= 22;
+
+    // Cabecera de tabla
+    drawSafeText(p2, 'Instrumento', { x: left,       y, size: 12, font });
+    drawSafeText(p2, 'Tipo',       { x: left + 260,  y, size: 12, font });
+    drawSafeText(p2, 'Nota',       { x: left + 360,  y, size: 12, font });
+    y -= 14;
+
+    p2.drawLine({
+      start: { x: left, y: y + 8 }, end: { x: 550, y: y + 8 },
+      color: rgb(0.8,0.8,0.8), thickness: 1
+    });
+    y -= 4;
+
+    // Relleno de tabla (muy básico; deduce tipo por nombre)
+    items.forEach((activo) => {
+      const tipo = activo.toLowerCase().includes('bond') || activo.toLowerCase().includes('gov') ? 'Renta fija' : 'Renta variable';
+      drawSafeText(p2, activo, { x: left, y, size: 11, font });
+      drawSafeText(p2, tipo,   { x: left + 260, y, size: 11, font });
+      drawSafeText(p2, 'ETF/Fondo', { x: left + 360, y, size: 11, font });
+      y -= 16;
+    });
+  } else {
+    // Si queda espacio, metemos una “tabla corta” en la misma página
+    y -= 10;
+    drawSafeText(page, 'Detalle de instrumentos (tabla rápida)', {
+      x: left, y, size: 14, font
+    });
+    y -= 22;
+
+    drawSafeText(page, 'Instrumento', { x: left,       y, size: 12, font });
+    drawSafeText(page, 'Tipo',        { x: left + 260, y, size: 12, font });
+    drawSafeText(page, 'Nota',        { x: left + 360, y, size: 12, font });
+    y -= 14;
+
+    page.drawLine({
+      start: { x: left, y: y + 8 }, end: { x: 550, y: y + 8 },
+      color: rgb(0.8,0.8,0.8), thickness: 1
+    });
+    y -= 4;
+
+    items.forEach((activo) => {
+      const tipo = activo.toLowerCase().includes('bond') || activo.toLowerCase().includes('gov') ? 'Renta fija' : 'Renta variable';
+      drawSafeText(page, activo, { x: left, y, size: 11, font });
+      drawSafeText(page, tipo,   { x: left + 260, y, size: 11, font });
+      drawSafeText(page, 'ETF/Fondo', { x: left + 360, y, size: 11, font });
+      y -= 16;
+    });
   }
 
-  const bytes = await pdf.save()
-  return new Blob([bytes], { type: 'application/pdf' })
+  const pdfBytes = await pdfDoc.save();
+  return new Blob([pdfBytes], { type: 'application/pdf' });
 }
 
 // ---------- Componente original con nuevos textos PDF ----------
