@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { PDFDocument, rgb } from 'pdf-lib'
+import fontkit from '@pdf-lib/fontkit'
 
 // Importa fuentes y logo (las fuentes entran como URL gracias a Vite)
 import fontRegularUrl from '../assets/fonts/Inter-Regular.ttf?url'
