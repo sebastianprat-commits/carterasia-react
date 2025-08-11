@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { PDFDocument, rgb } from 'pdf-lib'
-import fontkit from '@pdf-lib/fontkit'
+import fontkit from '@pdf-lib/fontkit';
 
 // Importa fuentes y logo (las fuentes entran como URL gracias a Vite)
 import fontRegularUrl from '../assets/fonts/Inter-Regular.ttf?url'
@@ -85,6 +85,7 @@ async function generarPDF({ perfil, nombre, volObjetivo }) {
   ])
 
   const pdfDoc = await PDFDocument.create()
+  pdfDoc.registerFontkit(fontkit); 
   const fontRegular = await pdfDoc.embedFont(fontRegularBytes)
   const fontBold = await pdfDoc.embedFont(fontBoldBytes)
   const logoImg = await pdfDoc.embedPng(logoBytes)
