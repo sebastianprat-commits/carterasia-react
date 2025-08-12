@@ -169,6 +169,7 @@ export default function Cuestionario() {
           nombre: formData.nombre,
           volObjetivo,
           docId: docRef.id, // 👈 clave para subir PDF y enviar enlace por email
+          formData, // 👈 Útil para la explicación del perfil
         },
       })
     } catch (err) {
