@@ -1,0 +1,32 @@
+[
+  {
+    "isin": "ES0140609003",
+    "ter": 1.70,
+    "ret_12m": 11.2,
+    "ret_36m": 28.3,
+    "ret_60m": 45.0,
+    "data_as_of": "2025-07"
+  },
+  {
+    "ticker": "R4MONET",
+    "isin": "ES0173328037",
+    "nombre": "Renta 4 Monetario FI",
+    "proveedor": "Renta 4",
+    "clase": "cash",
+    "subclase": "Monetario EUR",
+    "region": "Europe",
+    "moneda": "EUR",
+    "hedged": true,
+    "ucits": true,
+    "traspasable": true,
+    "esg": false,
+    "ter": 0.30,
+    "benchmark": "ESTR",
+    "ret_12m": null,
+    "ret_36m": null,
+    "ret_60m": null,
+    "vol_36m": null,
+    "data_as_of": null,
+    "notas": null
+  }
+]
