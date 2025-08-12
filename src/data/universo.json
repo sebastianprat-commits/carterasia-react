@@ -1,0 +1,96 @@
+import json, os, textwrap, datetime
+
+# Build a universe with ~70 entries (placeholders/estimates where needed)
+U = []
+
+def add(**k):
+    # default fields
+    base = dict(
+        proveedor=None, clase=None, subclase=None, region="Global", moneda="EUR",
+        hedged=False, ucits=True, traspasable=False, esg=False, ter=None, benchmark=None,
+        ret_12m=None, ret_36m=None, ret_60m=None, vol_36m=None
+    )
+    base.update(k)
+    U.append(base)
+
+# --- Core Global Equity / Regions ---
+add(ticker="IWDA", isin="IE00B4L5Y983", nombre="iShares Core MSCI World UCITS ETF", proveedor="iShares",
+    clase="equity", subclase="DM World", region="Global", moneda="USD", hedged=False, ter=0.20,
+    benchmark="MSCI World", ret_12m=18.0, ret_36m=30.0, ret_60m=65.0, vol_36m=14.0)
+
+add(ticker="VWCE", isin="IE00BK5BQT80", nombre="Vanguard FTSE All-World UCITS ETF (Acc)", proveedor="Vanguard",
+    clase="equity", subclase="All-World", region="Global", moneda="USD", hedged=False, ter=0.22,
+    benchmark="FTSE All-World", ret_12m=17.0, ret_36m=29.0, ret_60m=60.0, vol_36m=14.5)
+
+add(ticker="CSPX", isin="IE00B5BMR087", nombre="iShares Core S&P 500 UCITS ETF (Acc)", proveedor="iShares",
+    clase="equity", subclase="US Large Cap", region="USA", moneda="USD", hedged=False, ter=0.07,
+    benchmark="S&P 500", ret_12m=20.0, ret_36m=37.0, ret_60m=85.0, vol_36m=15.0)
+
+add(ticker="VUSA", isin="IE00B3XXRP09", nombre="Vanguard S&P 500 UCITS ETF", proveedor="Vanguard",
+    clase="equity", subclase="US Large Cap", region="USA", moneda="USD", hedged=False, ter=0.07,
+    benchmark="S&P 500", ret_12m=19.0, ret_36m=36.0, ret_60m=82.0, vol_36m=15.0)
+
+add(ticker="EIMI", isin="IE00BKM4GZ66", nombre="iShares Core MSCI EM IMI UCITS ETF", proveedor="iShares",
+    clase="equity", subclase="EM IMI", region="Emerging", moneda="USD", hedged=False, ter=0.18,
+    benchmark="MSCI EM IMI", ret_12m=9.0, ret_36m=2.0, ret_60m=5.0, vol_36m=16.0)
+
+add(ticker="IUSN", isin="IE00BF4RFH31", nombre="iShares MSCI World Small Cap UCITS ETF", proveedor="iShares",
+    clase="equity", subclase="DM Small Cap", region="Global", moneda="USD", hedged=False, ter=0.35,
+    benchmark="MSCI World Small Cap", ret_12m=14.0, ret_36m=20.0, ret_60m=40.0, vol_36m=17.0)
+
+add(ticker="IMEU", isin="IE00B1YZSC51", nombre="iShares MSCI Europe UCITS ETF", proveedor="iShares",
+    clase="equity", subclase="Europe", region="Europe", moneda="EUR", hedged=False, ter=0.12,
+    benchmark="MSCI Europe", ret_12m=12.0, ret_36m=16.0, ret_60m=23.0, vol_36m=12.5)
+
+add(ticker="IS3N", isin="IE00B60SX394", nombre="iShares Core MSCI Europe UCITS ETF", proveedor="iShares",
+    clase="equity", subclase="Europe Core", region="Europe", moneda="EUR", hedged=False, ter=0.12,
+    benchmark="MSCI Europe", ret_12m=12.5, ret_36m=17.0, ret_60m=25.0, vol_36m=12.5)
+
+add(ticker="EMIM", isin="IE00BKM4GZ66", nombre="iShares Core MSCI Emerging Markets IMI (Alt ticker)", proveedor="iShares",
+    clase="equity", subclase="EM IMI", region="Emerging", moneda="USD", hedged=False, ter=0.18,
+    benchmark="MSCI EM IMI", ret_12m=9.0, ret_36m=2.0, ret_60m=5.0, vol_36m=16.0)
+
+add(ticker="SPYW", isin="IE00B5BMR087", nombre="SPDR S&P 500 UCITS ETF (Acc)", proveedor="SPDR",
+    clase="equity", subclase="US Large Cap", region="USA", moneda="USD", hedged=False, ter=0.09,
+    benchmark="S&P 500", ret_12m=19.5, ret_36m=36.0, ret_60m=83.0, vol_36m=15.0)
+
+# Sector/Factor/Growth
+add(ticker="CNDX", isin="IE00B9MSZB99", nombre="iShares NASDAQ 100 UCITS ETF", proveedor="iShares",
+    clase="equity", subclase="US Tech Large Growth", region="USA", moneda="USD", hedged=False, ter=0.33,
+    benchmark="NASDAQ 100", ret_12m=25.0, ret_36m=45.0, ret_60m=110.0, vol_36m=20.0)
+
+add(ticker="IUIT", isin="IE00B3WJKG14", nombre="iShares S&P 500 Information Technology Sector UCITS ETF", proveedor="iShares",
+    clase="equity", subclase="US Tech Sector", region="USA", moneda="USD", hedged=False, ter=0.15,
+    benchmark="S&P 500 IT", ret_12m=28.0, ret_36m=50.0, ret_60m=120.0, vol_36m=22.0)
+
+add(ticker="IUSP", isin="IE00B52MJP17", nombre="iShares Edge MSCI USA Value Factor UCITS ETF", proveedor="iShares",
+    clase="equity", subclase="US Value", region="USA", moneda="USD", hedged=False, ter=0.20,
+    benchmark="MSCI USA Value", ret_12m=12.0, ret_36m=25.0, ret_60m=50.0, vol_36m=14.0)
+
+add(ticker="IWMO", isin="IE00BP3QZB59", nombre="iShares Edge MSCI World Momentum Factor UCITS ETF", proveedor="iShares",
+    clase="equity", subclase="Momentum Factor", region="Global", moneda="USD", hedged=False, ter=0.30,
+    benchmark="MSCI World Momentum", ret_12m=18.0, ret_36m=28.0, ret_60m=55.0, vol_36m=16.0)
+
+add(ticker="INRG", isin="IE00B1XNHC34", nombre="iShares Global Clean Energy UCITS ETF", proveedor="iShares",
+    clase="equity", subclase="Clean Energy", region="Global", moneda="USD", hedged=False, ter=0.65,
+    benchmark="S&P Global Clean Energy", ret_12m=None, ret_36m=None, ret_60m=None, vol_36m=None, esg=True)
+
+add(ticker="ESGE", isin="IE00B57X3V84", nombre="iShares MSCI USA ESG Enhanced UCITS ETF", proveedor="iShares",
+    clase="equity", subclase="USA ESG", region="USA", moneda="USD", hedged=False, ter=0.10,
+    benchmark="MSCI USA ESG Enhanced", ret_12m=None, ret_36m=None, ret_60m=None, vol_36m=None, esg=True)
+
+# Bonds Core EUR hedged
+add(ticker="VAGF", isin="IE00BGCZB107", nombre="Vanguard Global Aggregate Bond UCITS ETF (EUR Hedged)", proveedor="Vanguard",
+    clase="bond", subclase="Global Aggregate EUR-H", region="Global", moneda="EUR", hedged=True, ter=0.10,
+    benchmark="Bloomberg Global Agg (EUR-H)", ret_12m=3.0, ret_36m=-5.0, ret_60m=-2.0, vol_36m=4.5)
+
+add(ticker="IBGL", isin="IE00B1FZS798", nombre="iShares Euro Government Bond 1-3yr UCITS ETF", proveedor="iShares",
+    clase="bond", subclase="Euro Gov 1-3", region="Europe", moneda="EUR", hedged=True, ter=0.20,
+    benchmark="Bloomberg Euro Govt 1-3", ret_12m=2.0, ret_36m=-1.5, ret_60m=0.0, vol_36m=2.0)
+
+add(ticker="IEAC", isin="IE00B3F81409", nombre="iShares Euro Corporate Bond UCITS ETF", proveedor="iShares",
+    clase="bond", subclase="Euro Corp IG", region="Europe", moneda="EUR", hedged=True, ter=0.20,
+    benchmark="Bloomberg Euro-Agg Corporate", ret_12m=2.5, ret_36m=-2.0, ret_60m=-1.0, vol_36m=5.0)
+
+add(ticker="XGLE", isin="LU0290355717", nombre="Xtrackers Eurozone Government Bond UCITS ETF", proveedor="Xtrackers",
+    clase="bond", subclase="Euro Gov", region="Europe", moneda="EUR", hedged=True, ter=0
