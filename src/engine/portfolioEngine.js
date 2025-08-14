@@ -1,80 +1,62 @@
 // src/engine/portfolioEngine.js
 
-/**
- * Devuelve el objetivo estratégico por perfil.
- * perfiles admitidos: conservador | moderado | dinamico | agresivo
- */
+/* ---------- Objetivo por perfil ---------- */
 export function targetByPerfil(perfil) {
-  const p = String(perfil || '').toLowerCase();
+  const p = String(perfil || "").toLowerCase();
   const map = {
     conservador: { equity: 0.25, bond: 0.65, cash: 0.10 },
     moderado:    { equity: 0.50, bond: 0.45, cash: 0.05 },
     dinamico:    { equity: 0.70, bond: 0.25, cash: 0.05 },
-    agresivo:    { equity: 0.85, bond: 0.10, cash: 0.05 },
+    agresivo:    { equity: 0.85, bond: 0.10, cash: 0.05 }
   };
   return map[p] || map.moderado;
 }
 
-/**
- * Estima volatilidad anualizada aprox. combinando vol_36m si existe.
- * Si no hay datos, usa heurística por clase.
- */
+/* ---------- Estimación de volatilidad ---------- */
 export function estimateVol(portfolio = []) {
   if (!Array.isArray(portfolio) || portfolio.length === 0) return 0;
 
   const heur = (item) => {
-    // heurística básica si no trae vol_36m
-    const cls = (item?.clase || '').toLowerCase();
-    if (cls === 'equity') return 18;
-    if (cls === 'bond')   return 6;
-    if (cls === 'reit')   return 20;
-    if (cls === 'cash')   return 0.5;
+    const cls = (item?.clase || "").toLowerCase();
+    if (cls === "equity") return 18;
+    if (cls === "bond")   return 6;
+    if (cls === "reit")   return 20;
+    if (cls === "cash")   return 0.5;
     return 10;
   };
 
-  const wavg =
-    portfolio.reduce((acc, it) => {
-      const w = Number(it?.weight) || 0;
-      const v = Number(it?.vol_36m);
-      const vol = Number.isFinite(v) ? v : heur(it);
-      return acc + w * vol;
-    }, 0);
+  const wavg = portfolio.reduce((acc, it) => {
+    const w = Number(it?.weight) || 0;
+    const v = Number(it?.vol_36m);
+    const vol = Number.isFinite(v) ? v : heur(it);
+    return acc + w * vol;
+  }, 0);
 
   return Number(wavg.toFixed(1));
 }
 
-/**
- * Motor simple de construcción de cartera:
- * - Filtra el universo por preferencias ESG/traspasables
- * - Elige candidatos por clase (equity/bond/cash)
- * - Reparte pesos según el objetivo del perfil
- * Devuelve [{ ...instrumento, weight }]
- */
+/* ---------- Motor simple de cartera ---------- */
 export function buildPortfolio({ perfil, preferencias = {}, universo = [] } = {}) {
   if (!perfil) return [];
 
-  // objetivo estratégico
   const tgt = targetByPerfil(perfil);
 
-  // normaliza flags de preferencias
   const esgWanted =
-    String(preferencias?.preferenciaESG).toLowerCase() === 'si' || preferencias?.preferenciaESG === true;
+    String(preferencias?.preferenciaESG).toLowerCase() === "si" || preferencias?.preferenciaESG === true;
   const traspWanted =
-    String(preferencias?.fondosTraspasables).toLowerCase() === 'si' || preferencias?.fondosTraspasables === true;
+    String(preferencias?.fondosTraspasables).toLowerCase() === "si" || preferencias?.fondosTraspasables === true;
 
-  // universo filtrado y saneado
+  // Sanea y filtra universo
   const U = (universo || [])
-    .filter(x => x && x.ticker && x.nombre && x.clase)
-    .filter(x => (esgWanted ? x.esg === true : true))
-    .filter(x => (traspWanted ? x.traspasable === true : true))
-    .map(x => ({ ...x, ter: typeof x.ter === 'number' ? x.ter : 0 }));
+    .filter((x) => x && x.ticker && x.nombre && x.clase)
+    .filter((x) => (esgWanted ? x.esg === true : true))
+    .filter((x) => (traspWanted ? x.traspasable === true : true))
+    .map((x) => ({ ...x, ter: typeof x.ter === "number" ? x.ter : 0 }));
 
-  // separa por clase
-  const EQ = U.filter(x => x.clase === 'equity');
-  const BD = U.filter(x => x.clase === 'bond');
-  const CS = U.filter(x => x.clase === 'cash');
+  const EQ = U.filter((x) => x.clase === "equity");
+  const BD = U.filter((x) => x.clase === "bond");
+  const CS = U.filter((x) => x.clase === "cash");
 
-  // pickers muy simples (mejorar después con tu scoring)
   const byLowTer = (a, b) => (a.ter ?? 1) - (b.ter ?? 1);
   const pick = (arr, n) => arr.slice(0, Math.max(0, n));
 
@@ -82,7 +64,6 @@ export function buildPortfolio({ perfil, preferencias = {}, universo = [] } = {}
   const bdPicks = diversifyBonds(BD).sort(byLowTer);
   const csPicks = pick(CS.sort(byLowTer), 1);
 
-  // si faltan clases, rellena con lo que haya
   const eq = eqPicks.length ? eqPicks : pick(EQ.sort(byLowTer), 6);
   const bd = bdPicks.length ? bdPicks : pick(BD.sort(byLowTer), 4);
   const cs = csPicks.length ? csPicks : pick(CS.sort(byLowTer), 1);
@@ -105,7 +86,7 @@ export function buildPortfolio({ perfil, preferencias = {}, universo = [] } = {}
   const spread = (items, totalW) => {
     if (!items.length) return [];
     const w = clamp01(totalW) / items.length;
-    return items.map(x => ({ ...x, weight: Number(w.toFixed(6)) }));
+    return items.map((x) => ({ ...x, weight: Number(w.toFixed(6)) }));
   };
 
   const combined = [
@@ -114,13 +95,11 @@ export function buildPortfolio({ perfil, preferencias = {}, universo = [] } = {}
     ...spread(cs, csW),
   ];
 
-  // normaliza por si hubo redondeos
   const sum = combined.reduce((acc, p) => acc + (Number(p.weight) || 0), 0) || 1;
-  return combined.map(p => ({ ...p, weight: Number((p.weight / sum).toFixed(6)) }));
+  return combined.map((p) => ({ ...p, weight: Number((p.weight / sum).toFixed(6)) }));
 }
 
-/* ----------------- helpers internos ----------------- */
-
+/* ---------- Helpers internos ---------- */
 function diversifyEquity(equity) {
   if (!equity?.length) return [];
   const core = equity.slice().sort((a, b) => (a.ter ?? 1) - (b.ter ?? 1));
@@ -128,6 +107,33 @@ function diversifyEquity(equity) {
 
   const chosen = [
     // World / All-World
-    pick((x) => /all-?world/i.test(x?.subclase ??
+    pick((x) => /all-?world/i.test(x?.subclase ?? "") || /dm world/i.test(x?.subclase ?? "") || /world/i.test(x?.nombre ?? "")) || core[0],
+    // USA
+    pick((x) => /usa/i.test(x?.region ?? "") || /us/i.test(x?.subclase ?? "")),
+    // Europe
+    pick((x) => /europe/i.test(x?.region ?? "") || /europe/i.test(x?.subclase ?? "")),
+    // Emerging
+    pick((x) => /emerg/i.test(x?.region ?? "") || /em/i.test(x?.subclase ?? "")),
+    // Small Cap
+    pick((x) => /small cap/i.test(x?.subclase ?? "")),
+    // Tech/NASDAQ
+    pick((x) => /tech|information technology|nasdaq/i.test(x?.subclase ?? "") || /tech/i.test(x?.nombre ?? "")),
+  ].filter(Boolean);
+
+  const seen = new Set();
+  const out = [];
+  for (const it of chosen) {
+    if (it && !seen.has(it.ticker)) { seen.add(it.ticker); out.push(it); }
+  }
+  return out.slice(0, 6);
+}
+
+function diversifyBonds(bonds) {
+  if (!bonds?.length) return [];
+  const findKw = (kw) => bonds.find((b) => [b.subclase, b.nombre].join(" ").toLowerCase().includes(kw));
+  const chosen = [
+    findKw("aggregate") || bonds[0],
+    findKw("gov 1-3") || findKw("
+
 
 
