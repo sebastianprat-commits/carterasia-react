@@ -221,9 +221,9 @@ export default function CarteraPersonalizada() {
       </div>
 
       <div className="mt-6 flex gap-3">
-        <button onClick={handleDownloadPDF} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-          Descargar PDF
-        </button>
+        <button onClick={handleVerInformeDemo} className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700">
+  Ver informe DEMO (Premium)
+</button>
 async function handleVerInformeDemo() {
   try {
     const payload = {
