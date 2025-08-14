@@ -2,4 +2,6 @@
   "rewrites": [
     { "source": "/(.*)", "destination": "/" }
   ]
+  "functions": { "api/report.js": { "runtime": "nodejs20.x" }
+    }
 }
