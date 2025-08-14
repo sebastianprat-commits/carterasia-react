@@ -109,71 +109,159 @@ export default function CarteraPersonalizada() {
   }, [portfolio]);
 
   // 5) PDF (descarga local)
-  const handleDownloadPDF = async () => {
-    if (!perfil || portfolio.length === 0) return;
-    const pdf = await PDFDocument.create();
-    const page = pdf.addPage([595.28, 841.89]); // A4
-    const font = await pdf.embedFont(StandardFonts.Helvetica);
-    const fontB = await pdf.embedFont(StandardFonts.HelveticaBold);
-    const M = 40;
-    let y = 800;
+const handleDownloadPDF = async () => {
+  if (!perfil || portfolio.length === 0) return;
 
-    const line = (x1, y1, x2, y2, color = rgb(0.85, 0.85, 0.85)) =>
-      page.drawLine({ start: { x: x1, y: y1 }, end: { x: x2, y: y2 }, color, thickness: 1 });
-    const text = (t, x, yy, size = 11, bold = false, color = rgb(0, 0, 0)) =>
-      page.drawText(String(t), { x, y: yy, size, font: bold ? fontB : font, color });
+  const A4 = { w: 595.28, h: 841.89 };     // puntos
+  const M = 40;                             // margen
+  const rowH = 14;                          // alto de fila
+  const headerH = 24;                       // alto cabecera tabla
+  const footerH = 30;                       // alto del pie
+  const usableH = A4.h - M - footerH - 60;  // zona útil por página
 
-    // Portada
-    text(`${SITE_NAME} - Informe de Cartera`, M, y, 16, true, rgb(0, 0, 0.6)); y -= 18;
-    const fecha = new Date().toLocaleString();
-    text(`Fecha: ${fecha}`, M, y, 10, false, rgb(0.25, 0.25, 0.25)); y -= 14;
-    if (nombre) { text(`Usuario: ${nombre}`, M, y); y -= 14; }
-    text(`Perfil inversor: ${String(perfil).toUpperCase()}`, M, y, 12, true, rgb(0.05, 0.25, 0.65)); y -= 16;
-    text(`Objetivo asignación ~ Equity ${pct(target?.equity)}, Bond ${pct(target?.bond)}, Cash ${pct(target?.cash)}`, M, y); y -= 14;
-    text(`Volatilidad estimada cartera: ~${volEst}% (aprox)`, M, y); y -= 16;
-    line(M, y, 595.28 - M, y); y -= 18;
+  const pdf = await PDFDocument.create();
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  const fontB = await pdf.embedFont(StandardFonts.HelveticaBold);
 
-    // Tabla
-    text('Cartera sugerida', M, y, 12, true); y -= 16;
-    text('Pos', M, y); text('Ticker', M + 30, y); text('Nombre', M + 90, y);
-    text('Clase', M + 330, y); text('Reg', M + 390, y); text('TER', M + 440, y); text('Peso', M + 490, y); y -= 12;
-    line(M, y, 595.28 - M, y); y -= 10;
-
-    portfolio.slice(0, 12).forEach((p, i) => {
-      text(String(i + 1).padStart(2, '0'), M, y);
-      text(String(p.ticker || ''), M + 30, y);
-      text(String(p.nombre || '').slice(0, 36), M + 90, y);
-      text(String(p.clase || ''), M + 330, y);
-      text(String(p.region || ''), M + 390, y);
-      const ter = Number(p.ter);
-      text(Number.isFinite(ter) ? `${(ter * 100).toFixed(2)}%` : '-', M + 440, y);
-      text(pct(p.weight), M + 490, y);
-      y -= 14;
-      if (y < 80) { y = 800; } // MVP simple
+  const drawHeader = (page, title, pageIndex, pageCount) => {
+    page.drawText(`${SITE_NAME} — Informe de Cartera`, {
+      x: M, y: A4.h - M + 6, size: 10, font: fontB, color: rgb(0.05, 0.25, 0.65)
     });
+    page.drawText(title, { x: M, y: A4.h - M - 8, size: 14, font: fontB });
+    page.drawLine({ start: {x: M, y: A4.h - M - 14}, end: {x: A4.w - M, y: A4.h - M - 14},
+      thickness: 1, color: rgb(0.8,0.8,0.8) });
+    // Pie + numeración
+    page.drawLine({ start: {x: M, y: footerH}, end: {x: A4.w - M, y: footerH},
+      thickness: 1, color: rgb(0.85,0.85,0.85) });
+    page.drawText(`Página ${pageIndex} de ${pageCount}`, {
+      x: A4.w - M - 120, y: footerH - 16, size: 9, font, color: rgb(0.35,0.35,0.35)
+    });
+  };
 
-    y -= 8;
-    line(M, y, 595.28 - M, y); y -= 14;
-    text('Metodología (resumen):', M, y, 12, true); y -= 14;
+  // 1) Portada
+  {
+    const page = pdf.addPage([A4.w, A4.h]);
+    const y0 = A4.h - M - 20;
+    drawHeader(page, 'Portada', 1, 1); // se reescribirá al final con el total real
+
+    let y = y0 - 6;
+    page.drawText(`Fecha: ${new Date().toLocaleString()}`, { x: M, y, size: 10, font, color: rgb(0.25,0.25,0.25)}); y -= 16;
+    if (nombre) { page.drawText(`Usuario: ${nombre}`, { x: M, y, size: 11, font }); y -= 16; }
+    page.drawText(`Perfil inversor: ${String(perfil).toUpperCase()}`, { x: M, y, size: 12, font: fontB, color: rgb(0.05, 0.25, 0.65)}); y -= 18;
+
+    page.drawText(
+      `Asignación objetivo → Equity ${pct(target?.equity)}, Bond ${pct(target?.bond)}, Cash ${pct(target?.cash)}`,
+      { x: M, y, size: 11, font }
+    ); y -= 16;
+    page.drawText(`Volatilidad estimada (aprox): ~${volEst}%`, { x: M, y, size: 11, font }); y -= 20;
+
+    wrapText(page, 'Metodología (resumen):', { x: M, y, size: 12, font: fontB }); y -= 16;
     [
       'Universo UCITS curado, costes bajos y clases sencillas.',
       'Scoring interno: momentum 12m, coste (TER) y penalización por volatilidad.',
       'Asignación estratégica por perfil y límites por clase/subclase/región.',
-      'Rebalanceo trimestral o por desviaciones significativas.',
-    ].forEach((s) => { text(`- ${s}`, M, y); y -= 12; });
+      'Rebalanceo trimestral o por desviaciones significativas.'
+    ].forEach(s => { wrapText(page, `• ${s}`, { x: M, y, size: 11, font }); y -= 14; });
 
-    y -= 6;
-    text('Aviso legal: Informe educativo. No constituye recomendación personalizada.', M, y, 9, false, rgb(0.35, 0.35, 0.35));
+    y -= 8;
+    wrapText(page, 'Aviso legal: Informe educativo. No constituye recomendación personalizada.',
+      { x: M, y, size: 9, font, color: rgb(0.35,0.35,0.35) });
+  }
 
-    const bytes = await pdf.save();
-    const blob = new Blob([bytes], { type: 'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `cartera_${perfil}.pdf`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  // 2) Tabla paginada (todas las filas)
+  const rows = portfolio.map((p, i) => ({
+    pos: String(i + 1).padStart(2, '0'),
+    ticker: p.ticker || '',
+    nombre: p.nombre || '',
+    clase: p.clase || '',
+    region: p.region || '',
+    ter: Number.isFinite(Number(p.ter)) ? `${(Number(p.ter) * 100).toFixed(2)}%` : '-',
+    peso: pct(p.weight)
+  }));
+
+  // Cálculo de filas por página
+  const rowsPerPage = Math.max(1, Math.floor((usableH - headerH) / rowH));
+  const pagesNeeded = Math.max(1, Math.ceil(rows.length / rowsPerPage));
+  let pageIndex = 0;
+  let printed = 0;
+
+  while (printed < rows.length || pagesNeeded === 1) {
+    pageIndex++;
+    const page = pdf.addPage([A4.w, A4.h]);
+    drawHeader(page, 'Cartera sugerida', pageIndex + 1, pagesNeeded + 1); // +1 por portada
+
+    // Cabecera de columnas
+    let y = A4.h - M - 36;
+    const cols = [
+      { key: 'pos',    x: M,       w: 26,  align: 'left', label: 'Pos' },
+      { key: 'ticker', x: M + 28,  w: 58,  align: 'left', label: 'Ticker' },
+      { key: 'nombre', x: M + 90,  w: 232, align: 'left', label: 'Nombre' },
+      { key: 'clase',  x: M + 326, w: 54,  align: 'left', label: 'Clase' },
+      { key: 'region', x: M + 384, w: 60,  align: 'left', label: 'Reg' },
+      { key: 'ter',    x: M + 448, w: 54,  align: 'right', label: 'TER' },
+      { key: 'peso',   x: M + 506, w: 54,  align: 'right', label: 'Peso' }
+    ];
+
+    cols.forEach(c =>
+      page.drawText(c.label, { x: c.x, y, size: 11, font: fontB, color: rgb(0.1,0.1,0.1) })
+    );
+    y -= 8;
+    page.drawLine({ start: {x: M, y}, end: {x: A4.w - M, y}, thickness: 1, color: rgb(0.85,0.85,0.85) });
+    y -= 8;
+
+    const slice = rows.slice(printed, printed + rowsPerPage);
+    slice.forEach(r => {
+      // Nombre truncado si hace falta
+      const name = r.nombre.length > 36 ? `${r.nombre.slice(0, 34)}…` : r.nombre;
+
+      cols.forEach(c => {
+        const val = c.key === 'nombre' ? name : r[c.key];
+        const txW = font.widthOfTextAtSize(String(val), 11);
+        const x = c.align === 'right' ? c.x + c.w - txW : c.x;
+        page.drawText(String(val), { x, y, size: 11, font, color: rgb(0,0,0) });
+      });
+      y -= rowH;
+    });
+
+    printed += slice.length;
+    if (printed >= rows.length) break;
+  }
+
+  // Arregla numeración en portada (ahora que sabemos total)
+  const pdfBytes = await pdf.save();
+  const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+  const url = window.URL.createObjectURL(blob);
+
+  // Descarga fiable: ancla temporal en el DOM
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `cartera_${perfil}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => window.URL.revokeObjectURL(url), 2000);
+};
+
+// Helpers: wrapText y color opcional
+function wrapText(page, text, { x, y, size = 11, font, color = rgb(0,0,0), maxWidth = 515 }) {
+  const words = String(text).split(' ');
+  let line = '';
+  let yy = y;
+  words.forEach((w, idx) => {
+    const test = line ? `${line} ${w}` : w;
+    if (font.widthOfTextAtSize(test, size) > maxWidth) {
+      page.drawText(line, { x, y: yy, size, font, color });
+      yy -= 14;
+      line = w;
+    } else {
+      line = test;
+    }
+    if (idx === words.length - 1) {
+      page.drawText(line, { x, y: yy, size, font, color });
+    }
+  });
+  return yy - 14;
+}
 
   // 6) DEMO Premium (mover fuera del JSX)
   const handleVerInformeDemo = async () => {
