@@ -1,180 +1,227 @@
-
 // src/components/CarteraPersonalizada.jsx
-import React, { useMemo, useState } from 'react'
-import { useLocation, Link } from 'react-router-dom'
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
-import { buildPortfolio, estimateVol, targetByPerfil } from '../engine/portfolioEngine'
-import universoBase from '../data/universo.json'
-import { SITE_NAME } from '../constants/brand'
+import React, { useMemo, useState } from 'react';
+import { useLocation, Link } from 'react-router-dom';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { buildPortfolio, estimateVol, targetByPerfil } from '../engine/portfolioEngine';
+import universoBase from '../data/universo.json';
+import { SITE_NAME } from '../constants/brand';
 
 function pct(n) {
-  const num = Number(n)
-  if (!isFinite(num)) return '0.0%'
-  return `${(num * 100).toFixed(1)}%`
+  const num = Number(n);
+  if (!Number.isFinite(num)) return '0.0%';
+  return `${(num * 100).toFixed(1)}%`;
 }
 
 function clamp01(x) {
-  const n = Number(x)
-  if (!isFinite(n)) return 0
-  return Math.min(1, Math.max(0, n))
+  const n = Number(x);
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(1, Math.max(0, n));
 }
 
 export default function CarteraPersonalizada() {
-  const { state } = useLocation()
-  const perfil = state?.perfil
-  const email = state?.email
-  const nombre = state?.nombre
+  const { state } = useLocation();
+  const perfil = state?.perfil;
+  const email = state?.email;
+  const nombre = state?.nombre;
   const preferencias = {
     moneda: state?.moneda || 'EUR',
     preferenciaESG: state?.preferenciaESG || 'no',
-    fondosTraspasables: state?.fondosTraspasables || 'no'
-  }
+    fondosTraspasables: state?.fondosTraspasables || 'no',
+  };
 
-  // 1) Universo: filtra por preferencias (ESG / Traspasables) y datos básicos válidos
+  // 1) Universo filtrado por preferencias
   const universo = useMemo(() => {
-    const esgWanted = String(preferencias.preferenciaESG).toLowerCase() === 'si' || preferencias.preferenciaESG === true
-    const traspWanted = String(preferencias.fondosTraspasables).toLowerCase() === 'si' || preferencias.fondosTraspasables === true
+    const esgWanted =
+      String(preferencias.preferenciaESG).toLowerCase() === 'si' || preferencias.preferenciaESG === true;
+    const traspWanted =
+      String(preferencias.fondosTraspasables).toLowerCase() === 'si' || preferencias.fondosTraspasables === true;
 
     return (universoBase || [])
-      .filter(x => x && x.ticker && x.nombre && x.clase && x.region)
-      .filter(x => (esgWanted ? x.esg === true : true))
-      .filter(x => (traspWanted ? x.traspasable === true : true))
-      .map(x => ({
+      .filter((x) => x && x.ticker && x.nombre && x.clase && x.region)
+      .filter((x) => (esgWanted ? x.esg === true : true))
+      .filter((x) => (traspWanted ? x.traspasable === true : true))
+      .map((x) => ({
         ...x,
-        ter: typeof x.ter === 'number' ? x.ter : 0, // asegura ter numérico
-      }))
-  }, [preferencias])
+        ter: typeof x.ter === 'number' ? x.ter : 0,
+      }));
+  }, [preferencias]);
 
   // 2) Target por perfil
-  const target = useMemo(() => targetByPerfil(perfil), [perfil])
+  const target = useMemo(() => targetByPerfil(perfil), [perfil]);
 
-  // 3) Cartera: intenta usar el motor; si no acepta `universo`, fallback simple
+  // 3) Cartera (motor -> fallback)
   const portfolio = useMemo(() => {
-    if (!perfil) return []
+    if (!perfil) return [];
 
-    // Primero intentamos con el motor pasando universo si lo soporta
     try {
-      const candidate = buildPortfolio({ perfil, preferencias, universo })
-      if (Array.isArray(candidate) && candidate.length > 0) return normalizeWeights(candidate)
+      const candidate = buildPortfolio({ perfil, preferencias, universo });
+      if (Array.isArray(candidate) && candidate.length > 0) return normalizeWeights(candidate);
     } catch {
-      // si el motor no acepta `universo`, intentamos sin él
       try {
-        const candidate = buildPortfolio({ perfil, preferencias })
-        if (Array.isArray(candidate) && candidate.length > 0) return normalizeWeights(candidate)
+        const candidate = buildPortfolio({ perfil, preferencias });
+        if (Array.isArray(candidate) && candidate.length > 0) return normalizeWeights(candidate);
       } catch {
-        // seguimos al fallback
+        // seguimos a fallback
       }
     }
 
-    // Fallback: muestra una cartera básica coherente con el target
-    // Selecciona 4-6 posiciones equity, 3-4 bonos, 1-2 cash si hay
-    const equity = universo.filter(x => x.clase === 'equity')
-    const bond = universo.filter(x => x.clase === 'bond')
-    const cash = universo.filter(x => x.clase === 'cash')
+    const equity = universo.filter((x) => x.clase === 'equity');
+    const bond = universo.filter((x) => x.clase === 'bond');
+    const cash = universo.filter((x) => x.clase === 'cash');
 
-    const pick = (arr, n = 3) => arr.slice(0, Math.max(0, n))
+    const pick = (arr, n = 3) => arr.slice(0, Math.max(0, n));
 
-    // intenta dar algo de diversificación razonable
-    const equityPicks = diversifyEquity(equity)
-    const bondPicks = diversifyBonds(bond)
+    const equityPicks = diversifyEquity(equity);
+    const bondPicks = diversifyBonds(bond);
 
-    // pesos base por bloque
-    const wEq = clamp01(target?.equity ?? 0.6)
-    const wBd = clamp01(target?.bond ?? 0.35)
-    const wCs = clamp01(target?.cash ?? 0.05)
-    const wSum = wEq + wBd + wCs || 1
+    const wEq = clamp01(target?.equity ?? 0.6);
+    const wBd = clamp01(target?.bond ?? 0.35);
+    const wCs = clamp01(target?.cash ?? 0.05);
+    const wSum = wEq + wBd + wCs || 1;
 
-    const eqWeight = wEq / wSum
-    const bdWeight = wBd / wSum
-    const csWeight = wCs / wSum
+    const eqWeight = wEq / wSum;
+    const bdWeight = wBd / wSum;
+    const csWeight = wCs / wSum;
 
-    const eqList = spreadWeights(equityPicks, eqWeight)
-    const bdList = spreadWeights(bondPicks, bdWeight)
-    const csList = spreadWeights(pick(cash, 1), csWeight)
+    const eqList = spreadWeights(equityPicks, eqWeight);
+    const bdList = spreadWeights(bondPicks, bdWeight);
+    const csList = spreadWeights(pick(cash, 1), csWeight);
 
-    return normalizeWeights([...eqList, ...bdList, ...csList])
-  }, [perfil, preferencias, universo])
+    return normalizeWeights([...eqList, ...bdList, ...csList]);
+  }, [perfil, preferencias, universo, target]);
 
   // 4) Métricas
   const volEst = useMemo(() => {
     try {
-      return estimateVol(portfolio)
+      return estimateVol(portfolio);
     } catch {
-      // heurística simple si no hay motor de volatilidad
-      const avg = portfolio.reduce((acc, p) => acc + (Number(p?.vol_36m) || 0) * (p.weight || 0), 0)
-      return (avg || 0).toFixed(1)
+      const avg = portfolio.reduce(
+        (acc, p) => acc + (Number(p?.vol_36m) || 0) * (p.weight || 0),
+        0
+      );
+      return (avg || 0).toFixed(1);
     }
-  }, [portfolio])
+  }, [portfolio]);
 
   const pesoTotal = useMemo(() => {
-    const sum = portfolio.reduce((acc, p) => acc + (Number(p.weight) || 0), 0)
-    return Math.round(sum * 1000) / 1000
-  }, [portfolio])
+    const sum = portfolio.reduce((acc, p) => acc + (Number(p.weight) || 0), 0);
+    return Math.round(sum * 1000) / 1000;
+  }, [portfolio]);
 
-  // 5) PDF
+  // 5) PDF (descarga local)
   const handleDownloadPDF = async () => {
-    if (!perfil || portfolio.length === 0) return
-    const pdf = await PDFDocument.create()
-    const page = pdf.addPage([595.28, 841.89]) // A4
-    const font = await pdf.embedFont(StandardFonts.Helvetica)
-    const fontB = await pdf.embedFont(StandardFonts.HelveticaBold)
-    const M = 40
-    let y = 800
+    if (!perfil || portfolio.length === 0) return;
+    const pdf = await PDFDocument.create();
+    const page = pdf.addPage([595.28, 841.89]); // A4
+    const font = await pdf.embedFont(StandardFonts.Helvetica);
+    const fontB = await pdf.embedFont(StandardFonts.HelveticaBold);
+    const M = 40;
+    let y = 800;
 
     const line = (x1, y1, x2, y2, color = rgb(0.85, 0.85, 0.85)) =>
-      page.drawLine({ start: { x: x1, y: y1 }, end: { x: x2, y: y2 }, color, thickness: 1 })
+      page.drawLine({ start: { x: x1, y: y1 }, end: { x: x2, y: y2 }, color, thickness: 1 });
     const text = (t, x, yy, size = 11, bold = false, color = rgb(0, 0, 0)) =>
-      page.drawText(String(t), { x, y: yy, size, font: bold ? fontB : font, color })
+      page.drawText(String(t), { x, y: yy, size, font: bold ? fontB : font, color });
 
-    // Portada breve
-    text(`${SITE_NAME} - Informe de Cartera`, M, y, 16, true, rgb(0, 0, 0.6)); y -= 18
-    const fecha = new Date().toLocaleString()
-    text(`Fecha: ${fecha}`, M, y, 10, false, rgb(0.25, 0.25, 0.25)); y -= 14
-    if (nombre) { text(`Usuario: ${nombre}`, M, y); y -= 14 }
-    text(`Perfil inversor: ${String(perfil).toUpperCase()}`, M, y, 12, true, rgb(0.05, 0.25, 0.65)); y -= 16
-    text(`Objetivo de asignacion ~ Equity ${pct(target?.equity)}, Bond ${pct(target?.bond)}, Cash ${pct(target?.cash)}`, M, y); y -= 14
-    text(`Volatilidad estimada cartera: ~${volEst}% (aprox)`, M, y); y -= 16
-    line(M, y, 595.28 - M, y); y -= 18
+    // Portada
+    text(`${SITE_NAME} - Informe de Cartera`, M, y, 16, true, rgb(0, 0, 0.6)); y -= 18;
+    const fecha = new Date().toLocaleString();
+    text(`Fecha: ${fecha}`, M, y, 10, false, rgb(0.25, 0.25, 0.25)); y -= 14;
+    if (nombre) { text(`Usuario: ${nombre}`, M, y); y -= 14; }
+    text(`Perfil inversor: ${String(perfil).toUpperCase()}`, M, y, 12, true, rgb(0.05, 0.25, 0.65)); y -= 16;
+    text(`Objetivo asignación ~ Equity ${pct(target?.equity)}, Bond ${pct(target?.bond)}, Cash ${pct(target?.cash)}`, M, y); y -= 14;
+    text(`Volatilidad estimada cartera: ~${volEst}% (aprox)`, M, y); y -= 16;
+    line(M, y, 595.28 - M, y); y -= 18;
 
     // Tabla
-    text('Cartera sugerida', M, y, 12, true); y -= 16
-    text('Pos', M, y); text('Ticker', M + 30, y); text('Nombre', M + 90, y); text('Clase', M + 330, y); text('Reg', M + 390, y); text('TER', M + 440, y); text('Peso', M + 490, y); y -= 12
-    line(M, y, 595.28 - M, y); y -= 10
+    text('Cartera sugerida', M, y, 12, true); y -= 16;
+    text('Pos', M, y); text('Ticker', M + 30, y); text('Nombre', M + 90, y);
+    text('Clase', M + 330, y); text('Reg', M + 390, y); text('TER', M + 440, y); text('Peso', M + 490, y); y -= 12;
+    line(M, y, 595.28 - M, y); y -= 10;
 
     portfolio.slice(0, 12).forEach((p, i) => {
-      text(String(i + 1).padStart(2, '0'), M, y)
-      text(String(p.ticker || ''), M + 30, y)
-      text(String(p.nombre || '').slice(0, 36), M + 90, y)
-      text(String(p.clase || ''), M + 330, y)
-      text(String(p.region || ''), M + 390, y)
-      const ter = Number(p.ter); text(isFinite(ter) ? `${(ter * 100).toFixed(2)}%` : '-', M + 440, y)
-      text(pct(p.weight), M + 490, y)
-      y -= 14
-      if (y < 80) { y = 800 } // MVP
-    })
+      text(String(i + 1).padStart(2, '0'), M, y);
+      text(String(p.ticker || ''), M + 30, y);
+      text(String(p.nombre || '').slice(0, 36), M + 90, y);
+      text(String(p.clase || ''), M + 330, y);
+      text(String(p.region || ''), M + 390, y);
+      const ter = Number(p.ter);
+      text(Number.isFinite(ter) ? `${(ter * 100).toFixed(2)}%` : '-', M + 440, y);
+      text(pct(p.weight), M + 490, y);
+      y -= 14;
+      if (y < 80) { y = 800; } // MVP simple
+    });
 
-    y -= 8
-    line(M, y, 595.28 - M, y); y -= 14
-    text('Metodologia (resumen):', M, y, 12, true); y -= 14
-    ;[
+    y -= 8;
+    line(M, y, 595.28 - M, y); y -= 14;
+    text('Metodología (resumen):', M, y, 12, true); y -= 14;
+    [
       'Universo UCITS curado, costes bajos y clases sencillas.',
       'Scoring interno: momentum 12m, coste (TER) y penalización por volatilidad.',
       'Asignación estratégica por perfil y límites por clase/subclase/región.',
-      'Rebalanceo trimestral o por desviaciones significativas.'
-    ].forEach(s => { text(`- ${s}`, M, y); y -= 12 })
+      'Rebalanceo trimestral o por desviaciones significativas.',
+    ].forEach((s) => { text(`- ${s}`, M, y); y -= 12; });
 
-    y -= 6
-    text('Aviso legal: Informe educativo. No constituye recomendación personalizada.', M, y, 9, false, rgb(0.35, 0.35, 0.35))
+    y -= 6;
+    text('Aviso legal: Informe educativo. No constituye recomendación personalizada.', M, y, 9, false, rgb(0.35, 0.35, 0.35));
 
-    const bytes = await pdf.save()
-    const blob = new Blob([bytes], { type: 'application/pdf' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `cartera_${perfil}.pdf`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
+    const bytes = await pdf.save();
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cartera_${perfil}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // 6) DEMO Premium (mover fuera del JSX)
+  const handleVerInformeDemo = async () => {
+    try {
+      const payload = {
+        demo: true,
+        usuario: { nombre, email },
+        perfil,
+        objetivo: target,
+        volatilidad: volEst,
+        portfolio,
+        macro: {
+          bloques: [
+            { titulo: 'EE.UU.', parrafos: [
+              'Crecimiento resiliente; desinflación gradual.',
+              'Fed cerca del final del ciclo restrictivo.'
+            ], bullets: ['PIB 1.8–2.2%', 'IPC 2.5–3.0%'] },
+            { titulo: 'Zona Euro', parrafos: [
+              'Mejora cíclica moderada; BCE normalizando.'
+            ], bullets: ['PIB 0.8–1.2%', 'IPC 2.0–2.5%'] },
+            { titulo: 'China', parrafos: ['Apoyo selectivo; inmobiliario lastra.'] },
+            { titulo: 'India', parrafos: ['Tesis estructural de crecimiento.'] },
+            { titulo: 'Emergentes', parrafos: ['FX y materias primas son clave.'] }
+          ]
+        },
+        riesgos: {
+          items: [
+            { nombre: 'Rebrote de inflación', descripcion: 'Retrasa recortes', probabilidad: 'Media', impacto: 'Alto', mitigacion: 'Duración diversificada, IG y cash' },
+            { nombre: 'Desaceleración global', descripcion: 'Industria débil', probabilidad: 'Media', impacto: 'Medio/Alto', mitigacion: 'Sesgo a calidad/defensivos' },
+            { nombre: 'Geopolítica', descripcion: 'Tensiones rutas/energía', probabilidad: 'Baja/Media', impacto: 'Medio', mitigacion: 'Diversificación regional' }
+          ]
+        }
+      };
+
+      const res = await fetch('/api/report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('Fallo al generar el informe');
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (e) {
+      alert('No se pudo generar el informe: ' + e.message);
+    }
+  };
 
   if (!perfil) {
     return (
@@ -183,12 +230,14 @@ export default function CarteraPersonalizada() {
         <p className="mb-4">Por favor, rellena el cuestionario para recibir tu cartera sugerida.</p>
         <Link to="/simulador" className="text-blue-600 underline">Volver al simulador</Link>
       </div>
-    )
+    );
   }
 
   return (
     <div className="max-w-3xl mx-auto mt-10 p-6 bg-white dark:bg-gray-900 rounded-xl shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Tu perfil: <span className="capitalize text-blue-600">{perfil}</span></h2>
+      <h2 className="text-2xl font-bold mb-4">
+        Tu perfil: <span className="capitalize text-blue-600">{perfil}</span>
+      </h2>
 
       <div className="mb-4 text-sm text-gray-700 dark:text-gray-200">
         <p>Asignación objetivo: Equity {pct(target?.equity)}, Bond {pct(target?.bond)}, Cash {pct(target?.cash)}.</p>
@@ -221,123 +270,82 @@ export default function CarteraPersonalizada() {
       </div>
 
       <div className="mt-6 flex gap-3">
-        <button onClick={handleVerInformeDemo} className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700">
-  Ver informe DEMO (Premium)
-</button>
-async function handleVerInformeDemo() {
-  try {
-    const payload = {
-      demo: true,
-      usuario: { nombre, email },
-      perfil,
-      objetivo: target,
-      volatilidad: volEst,
-      portfolio,
-      macro: {
-        bloques: [
-          { titulo: 'EE.UU.', parrafos: [
-            'Crecimiento resiliente; desinflación gradual.',
-            'Fed cerca del final del ciclo restrictivo.'
-          ], bullets: ['PIB 1.8–2.2%', 'IPC 2.5–3.0%'] },
-          { titulo: 'Zona Euro', parrafos: [
-            'Mejora cíclica moderada; BCE normalizando.'
-          ], bullets: ['PIB 0.8–1.2%', 'IPC 2.0–2.5%'] },
-          { titulo: 'China', parrafos: ['Apoyo selectivo; inmobiliario lastra.'] },
-          { titulo: 'India', parrafos: ['Tesis estructural de crecimiento.'] },
-          { titulo: 'Emergentes', parrafos: ['FX y materias primas son clave.'] }
-        ]
-      },
-      riesgos: {
-        items: [
-          { nombre: 'Rebrote de inflación', descripcion: 'Retrasa recortes', probabilidad: 'Media', impacto: 'Alto', mitigacion: 'Duración diversificada, IG y cash' },
-          { nombre: 'Desaceleración global', descripcion: 'Industria débil', probabilidad: 'Media', impacto: 'Medio/Alto', mitigacion: 'Sesgo a calidad/defensivos' },
-          { nombre: 'Geopolítica', descripcion: 'Tensiones rutas/energía', probabilidad: 'Baja/Media', impacto: 'Medio', mitigacion: 'Diversificación regional' }
-        ]
-      }
-    }
+        <button
+          onClick={handleVerInformeDemo}
+          className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700"
+        >
+          Ver informe DEMO (Premium)
+        </button>
 
-    const res = await fetch('/api/report', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-    if (!res.ok) throw new Error('Fallo al generar el informe')
-
-    const blob = await res.blob()
-    const url = URL.createObjectURL(blob)
-    window.open(url, '_blank')
-  } catch (e) {
-    alert('No se pudo generar el informe: ' + e.message)
-  }
-}
+        <button
+          onClick={handleDownloadPDF}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          Descargar PDF rápido
+        </button>
 
         <Link to="/" className="text-blue-600 underline self-center">Volver al inicio</Link>
       </div>
     </div>
-  )
+  );
 }
 
-function Th({ children }) { return <th className="p-2 text-gray-700 dark:text-gray-200">{children}</th> }
-function Td({ children }) { return <td className="p-2 text-gray-800 dark:text-gray-100">{children}</td> }
+function Th({ children }) { return <th className="p-2 text-gray-700 dark:text-gray-200">{children}</th>; }
+function Td({ children }) { return <td className="p-2 text-gray-800 dark:text-gray-100">{children}</td>; }
 
 /* -------- Helpers -------- */
 
 function normalizeWeights(list) {
-  const sum = list.reduce((acc, p) => acc + (Number(p.weight) || 0), 0)
-  if (sum <= 0) return list
-  return list.map(p => ({ ...p, weight: (Number(p.weight) || 0) / sum }))
+  const sum = list.reduce((acc, p) => acc + (Number(p.weight) || 0), 0);
+  if (sum <= 0) return list;
+  return list.map((p) => ({ ...p, weight: (Number(p.weight) || 0) / sum }));
 }
 
 function spreadWeights(items, totalWeight) {
-  if (!items || items.length === 0) return []
-  const w = clamp01(totalWeight) / items.length
-  return items.map(x => ({ ...x, weight: w }))
+  if (!items || items.length === 0) return [];
+  const w = clamp01(totalWeight) / items.length;
+  return items.map((x) => ({ ...x, weight: w }));
 }
 
 function diversifyEquity(equity) {
-  if (!equity.length) return []
-  // ordena por TER asc (baratos primero) y mezcla regiones core
-  const core = equity
-    .slice()
-    .sort((a, b) => (a.ter ?? 1) - (b.ter ?? 1))
+  if (!equity.length) return [];
+  const core = equity.slice().sort((a, b) => (a.ter ?? 1) - (b.ter ?? 1));
+  const pick = (fn) => core.find(fn);
 
-  const pick = (fn) => core.find(fn)
   const chosen = [
-    pick(x => /all-?world/i.test(x.subclase) || /DM World/i.test(x.subclase) || /World/i.test(x.nombre)) || core[0],
-    pick(x => /USA/i.test(x.region) || /US/i.test(x.subclase)),
-    pick(x => /Europe/i.test(x.region) || /Europe/i.test(x.subclase)),
-    pick(x => /Emerg/i.test(x.region) || /EM/i.test(x.subclase)),
-    pick(x => /Small Cap/i.test(x.subclase)),
-    pick(x => /Tech|Information Technology|NASDAQ/i.test(x.subclase) || /Tech/i.test(x.nombre)),
-  ].filter(Boolean)
+    pick((x) => /all-?world/i.test(x?.subclase ?? '') || /dm world/i.test(x?.subclase ?? '') || /world/i.test(x?.nombre ?? '')) || core[0],
+    pick((x) => /usa/i.test(x?.region ?? '') || /us/i.test(x?.subclase ?? '')),
+    pick((x) => /europe/i.test(x?.region ?? '') || /europe/i.test(x?.subclase ?? '')),
+    pick((x) => /emerg/i.test(x?.region ?? '') || /em/i.test(x?.subclase ?? '')),
+    pick((x) => /small cap/i.test(x?.subclase ?? '')),
+    pick((x) => /tech|information technology|nasdaq/i.test(x?.subclase ?? '') || /tech/i.test(x?.nombre ?? '')),
+  ].filter(Boolean);
 
-  // elimina duplicados por ticker
-  const seen = new Set()
-  const dedup = []
+  const seen = new Set();
+  const dedup = [];
   for (const x of chosen) {
-    if (x && !seen.has(x.ticker)) { seen.add(x.ticker); dedup.push(x) }
+    if (x && !seen.has(x.ticker)) { seen.add(x.ticker); dedup.push(x); }
   }
-  return dedup.slice(0, 6)
+  return dedup.slice(0, 6);
 }
 
 function diversifyBonds(bonds) {
-  if (!bonds.length) return []
-  // agrupa tipos frecuentes: aggregate, gov corto, gov 7-10, corp IG, IL, HY
-  const by = (kw) => bonds.find(b => [b.subclase, b.nombre].join(' ').toLowerCase().includes(kw))
+  if (!bonds.length) return [];
+  const by = (kw) =>
+    bonds.find((b) => [b.subclase, b.nombre].join(' ').toLowerCase().includes(kw));
   const chosen = [
     by('aggregate') || bonds[0],
     by('gov 1-3') || by('0-3') || by('short'),
     by('gov 7-10') || by('7-10'),
     by('corp') || by('investment grade'),
-    by('inflation') || by('il'),
-    by('high yield') || by('hy')
-  ].filter(Boolean)
+    by('inflation') || by(' il '),
+    by('high yield') || by(' hy'),
+  ].filter(Boolean);
 
-  // dedup por ticker
-  const seen = new Set()
-  const dedup = []
+  const seen = new Set();
+  const dedup = [];
   for (const x of chosen) {
-    if (x && !seen.has(x.ticker)) { seen.add(x.ticker); dedup.push(x) }
+    if (x && !seen.has(x.ticker)) { seen.add(x.ticker); dedup.push(x); }
   }
-  return dedup.slice(0, 4)
+  return dedup.slice(0, 4);
 }
