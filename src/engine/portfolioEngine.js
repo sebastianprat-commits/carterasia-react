@@ -104,6 +104,8 @@ export function scoreUniverse(list = [], perfil) {
  * Construye cartera (10–12 posiciones) respetando el target por clase.
  * Acepta universo externo opcional vía `universoCustom`.
  */
+
+import universoDefault from '../data/universo.json'
 export function buildPortfolio({ perfil, preferencias = {}, universoCustom } = {}) {
   const target = targetByPerfil(perfil)
   const base = filterUniverse(preferencias, universoCustom || universoDefault)
