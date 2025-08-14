@@ -130,10 +130,25 @@ function diversifyEquity(equity) {
 
 function diversifyBonds(bonds) {
   if (!bonds?.length) return [];
-  const findKw = (kw) => bonds.find((b) => [b.subclase, b.nombre].join(" ").toLowerCase().includes(kw));
+  const findKw = (kw) =>
+    bonds.find((b) => [b.subclase, b.nombre].join(' ').toLowerCase().includes(kw));
+
   const chosen = [
-    findKw("aggregate") || bonds[0],
-    findKw("gov 1-3") || findKw("
+    findKw('aggregate') || bonds[0],
+    findKw('gov 1-3') || findKw('0-3') || findKw('short'),
+    findKw('gov 7-10') || findKw('7-10'),
+    findKw('corp') || findKw('investment grade'),
+    findKw('inflation') || findKw(' il '),
+    findKw('high yield') || findKw(' hy'),
+  ].filter(Boolean);
+
+  const seen = new Set();
+  const out = [];
+  for (const it of chosen) {
+    if (it && !seen.has(it.ticker)) { seen.add(it.ticker); out.push(it); }
+  }
+  return out.slice(0, 4);
+}
 
 
 
