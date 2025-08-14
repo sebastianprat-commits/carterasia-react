@@ -224,6 +224,53 @@ export default function CarteraPersonalizada() {
         <button onClick={handleDownloadPDF} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
           Descargar PDF
         </button>
+async function handleVerInformeDemo() {
+  try {
+    const payload = {
+      demo: true,
+      usuario: { nombre, email },
+      perfil,
+      objetivo: target,
+      volatilidad: volEst,
+      portfolio,
+      macro: {
+        bloques: [
+          { titulo: 'EE.UU.', parrafos: [
+            'Crecimiento resiliente; desinflación gradual.',
+            'Fed cerca del final del ciclo restrictivo.'
+          ], bullets: ['PIB 1.8–2.2%', 'IPC 2.5–3.0%'] },
+          { titulo: 'Zona Euro', parrafos: [
+            'Mejora cíclica moderada; BCE normalizando.'
+          ], bullets: ['PIB 0.8–1.2%', 'IPC 2.0–2.5%'] },
+          { titulo: 'China', parrafos: ['Apoyo selectivo; inmobiliario lastra.'] },
+          { titulo: 'India', parrafos: ['Tesis estructural de crecimiento.'] },
+          { titulo: 'Emergentes', parrafos: ['FX y materias primas son clave.'] }
+        ]
+      },
+      riesgos: {
+        items: [
+          { nombre: 'Rebrote de inflación', descripcion: 'Retrasa recortes', probabilidad: 'Media', impacto: 'Alto', mitigacion: 'Duración diversificada, IG y cash' },
+          { nombre: 'Desaceleración global', descripcion: 'Industria débil', probabilidad: 'Media', impacto: 'Medio/Alto', mitigacion: 'Sesgo a calidad/defensivos' },
+          { nombre: 'Geopolítica', descripcion: 'Tensiones rutas/energía', probabilidad: 'Baja/Media', impacto: 'Medio', mitigacion: 'Diversificación regional' }
+        ]
+      }
+    }
+
+    const res = await fetch('/api/report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    if (!res.ok) throw new Error('Fallo al generar el informe')
+
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    window.open(url, '_blank')
+  } catch (e) {
+    alert('No se pudo generar el informe: ' + e.message)
+  }
+}
+
         <Link to="/" className="text-blue-600 underline self-center">Volver al inicio</Link>
       </div>
     </div>
