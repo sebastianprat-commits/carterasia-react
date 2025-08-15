@@ -132,322 +132,355 @@ export default function CarteraPersonalizada() {
     };
   }, [portfolio]);
 
-  // 5) PDF WOW (multi-sección, paginado, DEMO/Premium)
-  const handleDownloadPDF = async ({ demo = false } = {}) => {
-    try {
-      if (!perfil || portfolio.length === 0) {
-        alert('No hay datos para generar el PDF.');
-        return;
-      }
+ // 5) PDF WOW (multi-sección, paginado, DEMO/Premium) CON GRÁFICAS
+const handleDownloadPDF = async ({ demo = false } = {}) => {
+  try {
+    if (!perfil || portfolio.length === 0) {
+      alert('No hay datos para generar el PDF.');
+      return;
+    }
 
-      const pdf = await PDFDocument.create();
-      const A4 = { w: 595.28, h: 841.89 };
-      const M = 40;
-      const rowH = 14;
-      const headerGap = 36;
-      const footerH = 30;
+    const pdf = await PDFDocument.create();
+    const A4 = { w: 595.28, h: 841.89 };
+    const M = 40;
+    const rowH = 14;
+    const headerGap = 36;
+    const footerH = 30;
 
-      const font = await pdf.embedFont(StandardFonts.Helvetica);
-      const fontB = await pdf.embedFont(StandardFonts.HelveticaBold);
+    const font = await pdf.embedFont(StandardFonts.Helvetica);
+    const fontB = await pdf.embedFont(StandardFonts.HelveticaBold);
 
-      const drawHeader = (page, title, pageNum, totalHint) => {
-        page.drawText(`${SITE_NAME} — Informe de Cartera`, {
-          x: M, y: A4.h - M + 6, size: 10, font: fontB, color: rgb(0.05, 0.25, 0.65)
-        });
-        page.drawText(title, { x: M, y: A4.h - M - 8, size: 14, font: fontB });
-        page.drawLine({ start: { x: M, y: A4.h - M - 14 }, end: { x: A4.w - M, y: A4.h - M - 14 }, thickness: 1, color: rgb(0.8, 0.8, 0.8) });
-        page.drawLine({ start: { x: M, y: footerH }, end: { x: A4.w - M, y: footerH }, thickness: 1, color: rgb(0.85, 0.85, 0.85) });
-        page.drawText(`Página ${pageNum}${totalHint ? ` de ${totalHint}` : ''}`, {
-          x: A4.w - M - 120, y: footerH - 16, size: 9, font: fontB, color: rgb(0.35, 0.35, 0.35)
-        });
-      };
-
-      const drawWatermarkDemo = (page) => {
-        if (!demo) return;
-        page.drawText('DEMO', {
-          x: A4.w / 2 - 80,
-          y: A4.h / 2,
-          size: 80,
-          font: fontB,
-          color: rgb(0.92, 0.92, 0.92),
-          rotate: { type: 'degrees', angle: 30 }
-        });
-      };
-
-      const drawKV = (page, x, y, label, value) => {
-        page.drawText(label, { x, y, size: 10, font: font, color: rgb(0.35,0.35,0.35) });
-        page.drawText(String(value), { x, y: y - 14, size: 12, font: fontB });
-      };
-
-      const drawSectionTitle = (page, title, y0) => {
-        page.drawText(title, { x: M, y: y0, size: 13, font: fontB });
-        page.drawLine({ start: { x: M, y: y0 - 6 }, end: { x: A4.w - M, y: y0 - 6 }, thickness: 1, color: rgb(0.85,0.85,0.85) });
-      };
-
-      const drawTableHeader = (page, y0, cols) => {
-        cols.forEach(c =>
-          page.drawText(c.label, { x: c.x, y: y0, size: 11, font: fontB, color: rgb(0.1, 0.1, 0.1) })
-        );
-        page.drawLine({ start: { x: M, y: y0 - 8 }, end: { x: A4.w - M, y: y0 - 8 }, thickness: 1, color: rgb(0.85, 0.85, 0.85) });
-        return y0 - 14;
-      };
-
-      const textWidth = (t, size = 11) => font.widthOfTextAtSize(String(t), size);
-
-      // ==================== Portada ====================
-      let pageNum = 1;
-      let cover = pdf.addPage([A4.w, A4.h]);
-      drawHeader(cover, 'Portada', pageNum);
-      drawWatermarkDemo(cover);
-
-      let y = A4.h - M - headerGap;
-      const T = (txt, size = 11, bold = false, color = rgb(0, 0, 0)) => {
-        cover.drawText(String(txt), { x: M, y, size, font: bold ? fontB : font, color });
-        y -= size + 4;
-      };
-      T(`Fecha: ${new Date().toLocaleString()}`, 10, false, rgb(0.25, 0.25, 0.25));
-      if (nombre) T(`Usuario: ${nombre}`);
-      T(`Perfil inversor: ${String(perfil).toUpperCase()}`, 12, true, rgb(0.05, 0.25, 0.65));
-
-      // KPIs portada
-      y -= 6;
-      drawSectionTitle(cover, 'Resumen ejecutivo', y); y -= 24;
-      drawKV(cover, M, y, 'Asignación objetivo', `Equity ${pct(target?.equity)} · Bond ${pct(target?.bond)} · Cash ${pct(target?.cash)}`);
-      drawKV(cover, M + 260, y, 'Volatilidad estimada', `~${volEst}%`);
-      y -= 36;
-      drawKV(cover, M, y, 'TER ponderado', `${(kpis.terPonderado * 100).toFixed(2)}%`);
-      drawKV(cover, M + 260, y, 'Nº posiciones', portfolio.length);
-      y -= 44;
-
-      // Metodología breve
-      drawSectionTitle(cover, 'Metodología (resumen)', y); y -= 20;
-      [
-        'Universo UCITS curado, foco en costes bajos y liquidez.',
-        'Scoring interno: momentum 12m, coste (TER) y penalización por volatilidad.',
-        'Asignación estratégica por perfil con límites por clase/subclase/región.',
-        'Rebalanceo trimestral o ante desviaciones significativas.'
-      ].forEach(s => { cover.drawText(`• ${s}`, { x: M, y, size: 11, font }); y -= 14; });
-
-      y -= 8;
-      cover.drawText('Aviso: Informe educativo. No constituye recomendación personalizada.', {
-        x: M, y, size: 9, font, color: rgb(0.35, 0.35, 0.35)
+    const drawHeader = (page, title, pageNum, totalHint) => {
+      page.drawText(`${SITE_NAME} — Informe de Cartera`, {
+        x: M, y: A4.h - M + 6, size: 10, font: fontB, color: rgb(0.05, 0.25, 0.65)
       });
+      page.drawText(title, { x: M, y: A4.h - M - 8, size: 14, font: fontB });
+      page.drawLine({ start: { x: M, y: A4.h - M - 14 }, end: { x: A4.w - M, y: A4.h - M - 14 }, thickness: 1, color: rgb(0.8, 0.8, 0.8) });
+      page.drawLine({ start: { x: M, y: footerH }, end: { x: A4.w - M, y: footerH }, thickness: 1, color: rgb(0.85, 0.85, 0.85) });
+      page.drawText(`Página ${pageNum}${totalHint ? ` de ${totalHint}` : ''}`, {
+        x: A4.w - M - 120, y: footerH - 16, size: 9, font: fontB, color: rgb(0.35, 0.35, 0.35)
+      });
+    };
 
-      // ==================== Tabla Cartera (paginada) ====================
-      const rowsAll = portfolio.map((p, i) => ({
+    const drawWatermarkDemo = (page) => {
+      if (!demo) return;
+      page.drawText('DEMO', {
+        x: A4.w / 2 - 80,
+        y: A4.h / 2,
+        size: 80,
+        font: fontB,
+        color: rgb(0.92, 0.92, 0.92),
+        rotate: { type: 'degrees', angle: 30 }
+      });
+    };
+
+    const drawKV = (page, x, y, label, value) => {
+      page.drawText(label, { x, y, size: 10, font: font, color: rgb(0.35,0.35,0.35) });
+      page.drawText(String(value), { x, y: y - 14, size: 12, font: fontB });
+    };
+
+    const drawSectionTitle = (page, title, y0) => {
+      page.drawText(title, { x: M, y: y0, size: 13, font: fontB });
+      page.drawLine({ start: { x: M, y: y0 - 6 }, end: { x: A4.w - M, y: y0 - 6 }, thickness: 1, color: rgb(0.85,0.85,0.85) });
+    };
+
+    const drawTableHeader = (page, y0, cols) => {
+      cols.forEach(c =>
+        page.drawText(c.label, { x: c.x, y: y0, size: 11, font: fontB, color: rgb(0.1, 0.1, 0.1) })
+      );
+      page.drawLine({ start: { x: M, y: y0 - 8 }, end: { x: A4.w - M, y: y0 - 8 }, thickness: 1, color: rgb(0.85, 0.85, 0.85) });
+      return y0 - 14;
+    };
+
+    const textWidth = (t, size = 11) => font.widthOfTextAtSize(String(t), size);
+
+    // ==================== Portada ====================
+    let pageNum = 1;
+    let cover = pdf.addPage([A4.w, A4.h]);
+    drawHeader(cover, 'Portada', pageNum);
+    drawWatermarkDemo(cover);
+
+    let y = A4.h - M - headerGap;
+    const T = (txt, size = 11, bold = false, color = rgb(0, 0, 0)) => {
+      cover.drawText(String(txt), { x: M, y, size, font: bold ? fontB : font, color });
+      y -= size + 4;
+    };
+    T(`Fecha: ${new Date().toLocaleString()}`, 10, false, rgb(0.25, 0.25, 0.25));
+    if (nombre) T(`Usuario: ${nombre}`);
+    T(`Perfil inversor: ${String(perfil).toUpperCase()}`, 12, true, rgb(0.05, 0.25, 0.65));
+
+    // KPIs portada
+    y -= 6;
+    drawSectionTitle(cover, 'Resumen ejecutivo', y); y -= 24;
+    drawKV(cover, M, y, 'Asignación objetivo', `Equity ${pct(target?.equity)} · Bond ${pct(target?.bond)} · Cash ${pct(target?.cash)}`);
+    drawKV(cover, M + 260, y, 'Volatilidad estimada', `~${volEst}%`);
+    y -= 36;
+    drawKV(cover, M, y, 'TER ponderado', `${(kpis.terPonderado * 100).toFixed(2)}%`);
+    drawKV(cover, M + 260, y, 'Nº posiciones', portfolio.length);
+    y -= 44;
+
+    // Metodología breve
+    drawSectionTitle(cover, 'Metodología (resumen)', y); y -= 20;
+    [
+      'Universo UCITS curado, foco en costes bajos y liquidez.',
+      'Scoring interno: momentum 12m, coste (TER) y penalización por volatilidad.',
+      'Asignación estratégica por perfil con límites por clase/subclase/región.',
+      'Rebalanceo trimestral o ante desviaciones significativas.'
+    ].forEach(s => { cover.drawText(`• ${s}`, { x: M, y, size: 11, font }); y -= 14; });
+
+    y -= 8;
+    cover.drawText('Aviso: Informe educativo. No constituye recomendación personalizada.', {
+      x: M, y, size: 9, font, color: rgb(0.35, 0.35, 0.35)
+    });
+
+    // ==================== Visualizaciones (gráficas) ====================
+    {
+      pageNum++;
+      const page = pdf.addPage([A4.w, A4.h]);
+      drawHeader(page, 'Visualizaciones', pageNum);
+      drawWatermarkDemo(page);
+
+      // Datos de las gráficas
+      const slices = [
+        { label: 'Equity', value: clamp01(target?.equity ?? 0), color: '#2563eb' },
+        { label: 'Bond',   value: clamp01(target?.bond   ?? 0), color: '#10b981' },
+        { label: 'Cash',   value: clamp01(target?.cash   ?? 0), color: '#f59e0b' }
+      ];
+      const bars = (kpis.topRegions.length ? kpis.topRegions : [{region:'N/A', peso:1}]).map(r => ({
+        label: r.region, value: clamp01(r.peso)
+      }));
+
+      // Render canvas -> PNG (dataURL)
+      const pieUrl  = await renderPiePng({ width: 520, height: 260, slices, title: 'Asignación objetivo' });
+      const barsUrl = await renderBarsPng({ width: 520, height: 260, data: bars, title: 'Top regiones por peso' });
+
+      // Empotrar imágenes en PDF
+      const pieBytes  = await (await fetch(pieUrl)).arrayBuffer();
+      const barsBytes = await (await fetch(barsUrl)).arrayBuffer();
+      const pieImg  = await pdf.embedPng(pieBytes);
+      const barsImg = await pdf.embedPng(barsBytes);
+
+      // Dibujo en página
+      const imgW = 520, imgH = 260;
+      page.drawImage(pieImg,  { x: (A4.w - imgW)/2, y: A4.h - M - headerGap - imgH - 10, width: imgW, height: imgH });
+      page.drawImage(barsImg, { x: (A4.w - imgW)/2, y: footerH + 40,                    width: imgW, height: imgH });
+    }
+
+    // ==================== Tabla Cartera (paginada) ====================
+    const rowsAll = portfolio.map((p, i) => ({
+      pos: String(i + 1).padStart(2, '0'),
+      ticker: p.ticker || '',
+      nombre: p.nombre || '',
+      clase: p.clase || '',
+      region: p.region || '',
+      ter: Number.isFinite(Number(p.ter)) ? `${(Number(p.ter) * 100).toFixed(2)}%` : '-',
+      peso: pct(p.weight)
+    }));
+
+    const rows = demo ? rowsAll.slice(0, 3) : rowsAll;
+
+    const colsMain = [
+      { key: 'pos',    x: M,       w: 26,  align: 'left',  label: 'Pos' },
+      { key: 'ticker', x: M + 28,  w: 58,  align: 'left',  label: 'Ticker' },
+      { key: 'nombre', x: M + 90,  w: 232, align: 'left',  label: 'Nombre' },
+      { key: 'clase',  x: M + 326, w: 54,  align: 'left',  label: 'Clase' },
+      { key: 'region', x: M + 384, w: 60,  align: 'left',  label: 'Reg' },
+      { key: 'ter',    x: M + 448, w: 54,  align: 'right', label: 'TER' },
+      { key: 'peso',   x: M + 506, w: 54,  align: 'right', label: 'Peso' }
+    ];
+
+    const bottomLimit = footerH + 16;
+    const drawTablePage = (title, list) => {
+      pageNum++;
+      const page = pdf.addPage([A4.w, A4.h]);
+      drawHeader(page, title, pageNum);
+      drawWatermarkDemo(page);
+      let yy = drawTableHeader(page, A4.h - M - headerGap, colsMain);
+      for (const r of list) {
+        if (yy - rowH < bottomLimit) {
+          pageNum++;
+          const page2 = pdf.addPage([A4.w, A4.h]);
+          drawHeader(page2, `${title} (cont.)`, pageNum);
+          drawWatermarkDemo(page2);
+          yy = drawTableHeader(page2, A4.h - M - headerGap, colsMain);
+          const name = r.nombre.length > 36 ? `${r.nombre.slice(0, 34)}…` : r.nombre;
+          colsMain.forEach(c => {
+            const val = c.key === 'nombre' ? name : r[c.key];
+            const tw = textWidth(val, 11);
+            const x = c.align === 'right' ? c.x + c.w - tw : c.x;
+            page2.drawText(String(val), { x, y: yy, size: 11, font });
+          });
+          yy -= rowH;
+          continue;
+        }
+        const name = r.nombre.length > 36 ? `${r.nombre.slice(0, 34)}…` : r.nombre;
+        colsMain.forEach(c => {
+          const val = c.key === 'nombre' ? name : r[c.key];
+          const tw = textWidth(val, 11);
+          const x = c.align === 'right' ? c.x + c.w - tw : c.x;
+          page.drawText(String(val), { x, y: yy, size: 11, font });
+        });
+        yy -= rowH;
+      }
+    };
+
+    drawTablePage('Cartera sugerida', rows);
+
+    // ==================== Detalle Equity ====================
+    const eqRows = (demo ? portfolio.slice(0, 3) : portfolio)
+      .filter(p => p.clase === 'equity')
+      .map((p, i) => ({
         pos: String(i + 1).padStart(2, '0'),
         ticker: p.ticker || '',
         nombre: p.nombre || '',
-        clase: p.clase || '',
+        subclase: p.subclase || '',
         region: p.region || '',
         ter: Number.isFinite(Number(p.ter)) ? `${(Number(p.ter) * 100).toFixed(2)}%` : '-',
         peso: pct(p.weight)
       }));
 
-      const rows = demo ? rowsAll.slice(0, 3) : rowsAll;
+    const colsEq = [
+      { key: 'pos',     x: M,       w: 26,  align: 'left',  label: 'Pos' },
+      { key: 'ticker',  x: M + 28,  w: 58,  align: 'left',  label: 'Ticker' },
+      { key: 'nombre',  x: M + 90,  w: 210, align: 'left',  label: 'Nombre' },
+      { key: 'subclase',x: M + 304, w: 102, align: 'left',  label: 'Subclase' },
+      { key: 'region',  x: M + 410, w: 60,  align: 'left',  label: 'Reg' },
+      { key: 'ter',     x: M + 474, w: 44,  align: 'right', label: 'TER' },
+      { key: 'peso',    x: M + 522, w: 38,  align: 'right', label: 'Peso' }
+    ];
 
-      const colsMain = [
-        { key: 'pos',    x: M,       w: 26,  align: 'left',  label: 'Pos' },
-        { key: 'ticker', x: M + 28,  w: 58,  align: 'left',  label: 'Ticker' },
-        { key: 'nombre', x: M + 90,  w: 232, align: 'left',  label: 'Nombre' },
-        { key: 'clase',  x: M + 326, w: 54,  align: 'left',  label: 'Clase' },
-        { key: 'region', x: M + 384, w: 60,  align: 'left',  label: 'Reg' },
-        { key: 'ter',    x: M + 448, w: 54,  align: 'right', label: 'TER' },
-        { key: 'peso',   x: M + 506, w: 54,  align: 'right', label: 'Peso' }
-      ];
-
-      const bottomLimit = footerH + 16;
-      const drawTablePage = (title, list) => {
-        pageNum++;
-        const page = pdf.addPage([A4.w, A4.h]);
-        drawHeader(page, title, pageNum);
-        drawWatermarkDemo(page);
-        let yy = drawTableHeader(page, A4.h - M - headerGap, colsMain);
-        for (const r of list) {
-          if (yy - rowH < bottomLimit) {
-            // nueva página
-            pageNum++;
-            const page2 = pdf.addPage([A4.w, A4.h]);
-            drawHeader(page2, `${title} (cont.)`, pageNum);
-            drawWatermarkDemo(page2);
-            yy = drawTableHeader(page2, A4.h - M - headerGap, colsMain);
-            const name = r.nombre.length > 36 ? `${r.nombre.slice(0, 34)}…` : r.nombre;
-            colsMain.forEach(c => {
-              const val = c.key === 'nombre' ? name : r[c.key];
-              const tw = font.widthOfTextAtSize(String(val), 11);
-              const x = c.align === 'right' ? c.x + c.w - tw : c.x;
-              page2.drawText(String(val), { x, y: yy, size: 11, font });
-            });
-            yy -= rowH;
-            continue;
-          }
-          const name = r.nombre.length > 36 ? `${r.nombre.slice(0, 34)}…` : r.nombre;
-          colsMain.forEach(c => {
-            const val = c.key === 'nombre' ? name : r[c.key];
-            const tw = font.widthOfTextAtSize(String(val), 11);
-            const x = c.align === 'right' ? c.x + c.w - tw : c.x;
-            page.drawText(String(val), { x, y: yy, size: 11, font });
-          });
-          yy -= rowH;
+    const drawTableGeneric = (title, cols, list) => {
+      if (!list.length) return;
+      pageNum++;
+      let page = pdf.addPage([A4.w, A4.h]);
+      drawHeader(page, title, pageNum);
+      drawWatermarkDemo(page);
+      let yy = drawTableHeader(page, A4.h - M - headerGap, cols);
+      for (const r of list) {
+        if (yy - rowH < bottomLimit) {
+          pageNum++;
+          page = pdf.addPage([A4.w, A4.h]);
+          drawHeader(page, `${title} (cont.)`, pageNum);
+          drawWatermarkDemo(page);
+          yy = drawTableHeader(page, A4.h - M - headerGap, cols);
         }
-      };
-
-      drawTablePage('Cartera sugerida', rows);
-
-      // ==================== Detalle Equity ====================
-      const eqRows = (demo ? portfolio.slice(0, 3) : portfolio)
-        .filter(p => p.clase === 'equity')
-        .map((p, i) => ({
-          pos: String(i + 1).padStart(2, '0'),
-          ticker: p.ticker || '',
-          nombre: p.nombre || '',
-          subclase: p.subclase || '',
-          region: p.region || '',
-          ter: Number.isFinite(Number(p.ter)) ? `${(Number(p.ter) * 100).toFixed(2)}%` : '-',
-          peso: pct(p.weight)
-        }));
-
-      const colsEq = [
-        { key: 'pos',     x: M,       w: 26,  align: 'left',  label: 'Pos' },
-        { key: 'ticker',  x: M + 28,  w: 58,  align: 'left',  label: 'Ticker' },
-        { key: 'nombre',  x: M + 90,  w: 210, align: 'left',  label: 'Nombre' },
-        { key: 'subclase',x: M + 304, w: 102, align: 'left',  label: 'Subclase' },
-        { key: 'region',  x: M + 410, w: 60,  align: 'left',  label: 'Reg' },
-        { key: 'ter',     x: M + 474, w: 44,  align: 'right', label: 'TER' },
-        { key: 'peso',    x: M + 522, w: 38,  align: 'right', label: 'Peso' }
-      ];
-
-      const drawTableGeneric = (title, cols, list) => {
-        pageNum++;
-        let page = pdf.addPage([A4.w, A4.h]);
-        drawHeader(page, title, pageNum);
-        drawWatermarkDemo(page);
-        let yy = drawTableHeader(page, A4.h - M - headerGap, cols);
-        for (const r of list) {
-          if (yy - rowH < bottomLimit) {
-            pageNum++;
-            page = pdf.addPage([A4.w, A4.h]);
-            drawHeader(page, `${title} (cont.)`, pageNum);
-            drawWatermarkDemo(page);
-            yy = drawTableHeader(page, A4.h - M - headerGap, cols);
-          }
-          cols.forEach(c => {
-            const val = String(r[c.key] ?? '');
-            const tw = font.widthOfTextAtSize(val, 11);
-            const x = c.align === 'right' ? c.x + c.w - tw : c.x;
-            page.drawText(val, { x, y: yy, size: 11, font });
-          });
-          yy -= rowH;
-        }
-      };
-
-      if (eqRows.length) drawTableGeneric('Detalle renta variable', colsEq, eqRows);
-
-      // ==================== Detalle Bonos ====================
-      const bdRows = (demo ? portfolio.slice(0, 3) : portfolio)
-        .filter(p => p.clase === 'bond')
-        .map((p, i) => ({
-          pos: String(i + 1).padStart(2, '0'),
-          ticker: p.ticker || '',
-          nombre: p.nombre || '',
-          subclase: p.subclase || '',
-          region: p.region || '',
-          ter: Number.isFinite(Number(p.ter)) ? `${(Number(p.ter) * 100).toFixed(2)}%` : '-',
-          peso: pct(p.weight)
-        }));
-
-      if (bdRows.length) drawTableGeneric('Detalle renta fija', colsEq, bdRows);
-
-      // ==================== Top regiones ====================
-      {
-        pageNum++;
-        const page = pdf.addPage([A4.w, A4.h]);
-        drawHeader(page, 'Exposición por regiones (top)', pageNum);
-        drawWatermarkDemo(page);
-        let yy = A4.h - M - headerGap;
-
-        kpis.topRegions.forEach(({ region, peso }) => {
-          page.drawText(region, { x: M, y: yy, size: 11, font: fontB });
-          const barW = (A4.w - M * 2 - 140) * clamp01(peso);
-          page.drawText(pct(peso), { x: A4.w - M - 60, y: yy, size: 11, font });
-          // barra
-          page.drawLine({ start: { x: M + 120, y: yy + 4 }, end: { x: M + 120 + barW, y: yy + 4 }, thickness: 6, color: rgb(0.16, 0.45, 0.9) });
-          yy -= 24;
+        cols.forEach(c => {
+          const val = String(r[c.key] ?? '');
+          const tw = textWidth(val, 11);
+          const x = c.align === 'right' ? c.x + c.w - tw : c.x;
+          page.drawText(val, { x, y: yy, size: 11, font });
         });
+        yy -= rowH;
       }
+    };
 
-      // ==================== Metodología & rebalanceo ====================
-      {
-        pageNum++;
-        const page = pdf.addPage([A4.w, A4.h]);
-        drawHeader(page, 'Metodología y rebalanceo', pageNum);
-        drawWatermarkDemo(page);
-        let yy = A4.h - M - headerGap;
+    drawTableGeneric('Detalle renta variable', colsEq, eqRows);
 
-        const bullet = (s) => { page.drawText(`• ${s}`, { x: M, y: yy, size: 11, font }); yy -= 16; };
-        [
-          'Selección: universe UCITS, costes bajos, liquidez y réplica transparente.',
-          'Score: momentum 12m/6m, TER, volatilidad 36m (si disponible).',
-          'Límites: concentración por activo, por subclase y por región.',
-          'Rebalanceo: trimestral o desvío >25% del peso objetivo por bloque.',
-          'Control de riesgo: asignación por perfil y seguimiento de drawdowns.'
-        ].forEach(bullet);
-      }
+    // ==================== Detalle Bonos ====================
+    const bdRows = (demo ? portfolio.slice(0, 3) : portfolio)
+      .filter(p => p.clase === 'bond')
+      .map((p, i) => ({
+        pos: String(i + 1).padStart(2, '0'),
+        ticker: p.ticker || '',
+        nombre: p.nombre || '',
+        subclase: p.subclase || '',
+        region: p.region || '',
+        ter: Number.isFinite(Number(p.ter)) ? `${(Number(p.ter) * 100).toFixed(2)}%` : '-',
+        peso: pct(p.weight)
+      }));
 
-      // ==================== Riesgos clave ====================
-      {
-        pageNum++;
-        const page = pdf.addPage([A4.w, A4.h]);
-        drawHeader(page, 'Riesgos clave (resumen)', pageNum);
-        drawWatermarkDemo(page);
-        let yy = A4.h - M - headerGap;
+    drawTableGeneric('Detalle renta fija', colsEq, bdRows);
 
-        const risk = (name, desc, prob, imp, mit) => {
-          page.drawText(name, { x: M, y: yy, size: 12, font: fontB }); yy -= 14;
-          page.drawText(desc, { x: M, y: yy, size: 11, font }); yy -= 14;
-          page.drawText(`Prob.: ${prob} · Impacto: ${imp} · Mitigación: ${mit}`, { x: M, y: yy, size: 11, font, color: rgb(0.25,0.25,0.25) }); yy -= 18;
-        };
+    // ==================== Top regiones ====================
+    {
+      pageNum++;
+      const page = pdf.addPage([A4.w, A4.h]);
+      drawHeader(page, 'Exposición por regiones (top)', pageNum);
+      drawWatermarkDemo(page);
+      let yy = A4.h - M - headerGap;
 
-        risk('Rebrote de inflación', 'Repunte de IPC que penaliza duraciones largas y múltiplos de equity.', 'Media', 'Alta', 'Duración diversificada, sesgo IG, cash táctico.');
-        risk('Desaceleración global', 'Caída de beneficios y ciclo industrial débil.', 'Media', 'Media/Alta', 'Sesgo a calidad, defensivos y grado de inversión.');
-        risk('Geopolítica', 'Tensiones en rutas y materias primas elevan volatilidad.', 'Baja/Media', 'Media', 'Diversificación regional y gestión de divisa.');
-      }
-
-      // ==================== Glosario & Avisos ====================
-      {
-        pageNum++;
-        const page = pdf.addPage([A4.w, A4.h]);
-        drawHeader(page, 'Glosario & Avisos', pageNum);
-        drawWatermarkDemo(page);
-        let yy = A4.h - M - headerGap;
-
-        const line = (s, size = 11, bold = false) => { page.drawText(s, { x: M, y: yy, size, font: bold ? fontB : font }); yy -= size + 6; };
-
-        line('TER (Total Expense Ratio): coste anual del vehículo sobre patrimonio.', 11);
-        line('Volatilidad: oscilación histórica del precio; no predice resultados futuros.', 11);
-        line('Momentum 12m: rendimiento a 12 meses usado como señal de tendencia.', 11);
-        yy -= 8;
-        line('Aviso legal', 12, true);
-        line('Este documento es informativo y no constituye recomendación personalizada ni oferta de compra/venta.', 10);
-        line('La inversión conlleva riesgos, incluido la posible pérdida del capital invertido.', 10);
-      }
-
-      // Guardar y descargar
-      const bytes = await pdf.save();
-      const blob = new Blob([bytes], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = demo ? `cartera_${perfil}_DEMO.pdf` : `cartera_${perfil}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
-    } catch (e) {
-      console.error('PDF error:', e);
-      alert('No se pudo generar el PDF. Revisa la consola.');
+      kpis.topRegions.forEach(({ region, peso }) => {
+        page.drawText(region, { x: M, y: yy, size: 11, font: fontB });
+        const barW = (A4.w - M * 2 - 140) * clamp01(peso);
+        page.drawText(pct(peso), { x: A4.w - M - 60, y: yy, size: 11, font });
+        page.drawLine({ start: { x: M + 120, y: yy + 4 }, end: { x: M + 120 + barW, y: yy + 4 }, thickness: 6, color: rgb(0.16, 0.45, 0.9) });
+        yy -= 24;
+      });
     }
-  };
+
+    // ==================== Metodología & rebalanceo ====================
+    {
+      pageNum++;
+      const page = pdf.addPage([A4.w, A4.h]);
+      drawHeader(page, 'Metodología y rebalanceo', pageNum);
+      drawWatermarkDemo(page);
+      let yy = A4.h - M - headerGap;
+
+      const bullet = (s) => { page.drawText(`• ${s}`, { x: M, y: yy, size: 11, font }); yy -= 16; };
+      [
+        'Selección: universe UCITS, costes bajos, liquidez y réplica transparente.',
+        'Score: momentum 12m/6m, TER, volatilidad 36m (si disponible).',
+        'Límites: concentración por activo, por subclase y por región.',
+        'Rebalanceo: trimestral o desvío >25% del peso objetivo por bloque.',
+        'Control de riesgo: asignación por perfil y seguimiento de drawdowns.'
+      ].forEach(bullet);
+    }
+
+    // ==================== Riesgos clave ====================
+    {
+      pageNum++;
+      const page = pdf.addPage([A4.w, A4.h]);
+      drawHeader(page, 'Riesgos clave (resumen)', pageNum);
+      drawWatermarkDemo(page);
+      let yy = A4.h - M - headerGap;
+
+      const risk = (name, desc, prob, imp, mit) => {
+        page.drawText(name, { x: M, y: yy, size: 12, font: fontB }); yy -= 14;
+        page.drawText(desc, { x: M, y: yy, size: 11, font }); yy -= 14;
+        page.drawText(`Prob.: ${prob} · Impacto: ${imp} · Mitigación: ${mit}`, { x: M, y: yy, size: 11, font, color: rgb(0.25,0.25,0.25) }); yy -= 18;
+      };
+
+      risk('Rebrote de inflación', 'Repunte de IPC que penaliza duraciones largas y múltiplos de equity.', 'Media', 'Alta', 'Duración diversificada, sesgo IG, cash táctico.');
+      risk('Desaceleración global', 'Caída de beneficios y ciclo industrial débil.', 'Media', 'Media/Alta', 'Sesgo a calidad, defensivos y grado de inversión.');
+      risk('Geopolítica', 'Tensiones en rutas y materias primas elevan volatilidad.', 'Baja/Media', 'Media', 'Diversificación regional y gestión de divisa.');
+    }
+
+    // ==================== Glosario & Avisos ====================
+    {
+      pageNum++;
+      const page = pdf.addPage([A4.w, A4.h]);
+      drawHeader(page, 'Glosario & Avisos', pageNum);
+      drawWatermarkDemo(page);
+      let yy = A4.h - M - headerGap;
+
+      const line = (s, size = 11, bold = false) => { page.drawText(s, { x: M, y: yy, size, font: bold ? fontB : font }); yy -= size + 6; };
+
+      line('TER (Total Expense Ratio): coste anual del vehículo sobre patrimonio.', 11);
+      line('Volatilidad: oscilación histórica del precio; no predice resultados futuros.', 11);
+      line('Momentum 12m: rendimiento a 12 meses usado como señal de tendencia.', 11);
+      yy -= 8;
+      line('Aviso legal', 12, true);
+      line('Este documento es informativo y no constituye recomendación personalizada ni oferta de compra/venta.', 10);
+      line('La inversión conlleva riesgos, incluido la posible pérdida del capital invertido.', 10);
+    }
+
+    // Guardar y descargar
+    const bytes = await pdf.save();
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = demo ? `cartera_${perfil}_DEMO.pdf` : `cartera_${perfil}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  } catch (e) {
+    console.error('PDF error:', e);
+    alert('No se pudo generar el PDF. Revisa la consola.');
+  }
+};
+
 
   // 6) DEMO Premium (servidor)
   const handleVerInformeDemo = async () => {
