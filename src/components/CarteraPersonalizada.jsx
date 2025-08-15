@@ -855,5 +855,95 @@ async function renderBarsPng({ width=520, height=260, data=[], title='Gráfico' 
     x += barW + gap;
   });
 
+  // ===== NUEVO: Barras agrupadas (Objetivo vs Actual) =====
+async function renderGroupedBarsPng({ width=520, height=260, data=[], title='Comparativa' }) {
+  const c = document.createElement('canvas');
+  c.width = width; c.height = height;
+  const ctx = c.getContext('2d');
+
+  // fondo
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0,0,width,height);
+
+  // título
+  ctx.fillStyle = '#111827';
+  ctx.font = 'bold 16px Arial';
+  ctx.fillText(title, 12, 22);
+
+  // área
+  const padL = 60, padR = 16, padB = 40, padT = 30;
+  const gw = width - padL - padR;
+  const gh = height - padT - padB;
+  const x0 = padL, y0 = height - padB;
+
+  // ejes
+  ctx.strokeStyle = '#e5e7eb';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x0, y0 - gh);
+  ctx.lineTo(x0, y0);
+  ctx.lineTo(x0 + gw, y0);
+  ctx.stroke();
+
+  const maxV = 1; // porcentajes 0..1
+  const groups = data.length || 1;
+  const groupW = gw / groups;
+  const barW = Math.max(14, Math.min(40, groupW * 0.32)); // dos barras por grupo
+  const gapInGroup = Math.max(8, groupW * 0.12);
+
+  // ticks Y
+  ctx.fillStyle = '#6b7280';
+  ctx.font = '12px Arial';
+  for (let i=0;i<=4;i++){
+    const y = y0 - (gh * i/4);
+    const val = `${Math.round((maxV * i/4)*100)}%`;
+    ctx.fillText(val, 8, y+4);
+    ctx.strokeStyle = '#f3f4f6';
+    ctx.beginPath();
+    ctx.moveTo(x0, y);
+    ctx.lineTo(x0 + gw, y);
+    ctx.stroke();
+  }
+
+  // leyenda
+  const legendY = 30;
+  ctx.fillStyle = '#2563eb'; ctx.fillRect(x0, legendY, 12, 12);
+  ctx.fillStyle = '#111827'; ctx.fillText('Objetivo', x0 + 18, legendY + 11);
+  ctx.fillStyle = '#10b981'; ctx.fillRect(x0 + 100, legendY, 12, 12);
+  ctx.fillStyle = '#111827'; ctx.fillText('Actual',   x0 + 118, legendY + 11);
+
+  // barras agrupadas
+  data.forEach((d, i) => {
+    const baseX = x0 + i * groupW + (groupW - (barW*2 + gapInGroup))/2;
+
+    // objetivo (azul)
+    const h1 = gh * (Number(d.objetivo)||0);
+    ctx.fillStyle = '#2563eb';
+    ctx.fillRect(baseX, y0 - h1, barW, h1);
+
+    // actual (verde)
+    const h2 = gh * (Number(d.actual)||0);
+    ctx.fillStyle = '#10b981';
+    ctx.fillRect(baseX + barW + gapInGroup, y0 - h2, barW, h2);
+
+    // etiquetas
+    ctx.save();
+    ctx.translate(x0 + i*groupW + groupW/2, y0 + 16);
+    ctx.fillStyle = '#374151';
+    ctx.font = '12px Arial';
+    const label = String(d.label || `#${i+1}`);
+    ctx.fillText(label, -ctx.measureText(label).width/2, 0);
+    ctx.restore();
+
+    // valores encima
+    ctx.fillStyle = '#111827';
+    ctx.font = '12px Arial';
+    ctx.fillText(`${Math.round((Number(d.objetivo)||0)*100)}%`, baseX, y0 - h1 - 4);
+    ctx.fillText(`${Math.round((Number(d.actual)||0)*100)}%`, baseX + barW + gapInGroup, y0 - h2 - 4);
+  });
+
+  return c.toDataURL('image/png');
+}
+
   return c.toDataURL('image/png');
 }
