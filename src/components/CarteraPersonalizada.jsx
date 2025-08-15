@@ -233,38 +233,66 @@ const handleDownloadPDF = async ({ demo = false } = {}) => {
       x: M, y, size: 9, font, color: rgb(0.35, 0.35, 0.35)
     });
 
-    // ==================== Visualizaciones (gráficas) ====================
-    {
-      pageNum++;
-      const page = pdf.addPage([A4.w, A4.h]);
-      drawHeader(page, 'Visualizaciones', pageNum);
-      drawWatermarkDemo(page);
+// ==================== Visualizaciones (gráficas) ====================
+{
+  pageNum++;
+  const page = pdf.addPage([A4.w, A4.h]);
+  drawHeader(page, 'Visualizaciones', pageNum);
+  drawWatermarkDemo(page);
 
-      // Datos de las gráficas
-      const slices = [
-        { label: 'Equity', value: clamp01(target?.equity ?? 0), color: '#2563eb' },
-        { label: 'Bond',   value: clamp01(target?.bond   ?? 0), color: '#10b981' },
-        { label: 'Cash',   value: clamp01(target?.cash   ?? 0), color: '#f59e0b' }
-      ];
-      const bars = (kpis.topRegions.length ? kpis.topRegions : [{region:'N/A', peso:1}]).map(r => ({
-        label: r.region, value: clamp01(r.peso)
-      }));
+  // Datos de las gráficas
+  const slices = [
+    { label: 'Equity', value: clamp01(target?.equity ?? 0), color: '#2563eb' },
+    { label: 'Bond',   value: clamp01(target?.bond   ?? 0), color: '#10b981' },
+    { label: 'Cash',   value: clamp01(target?.cash   ?? 0), color: '#f59e0b' }
+  ];
+  const bars = (kpis.topRegions.length ? kpis.topRegions : [{region:'N/A', peso:1}]).map(r => ({
+    label: r.region, value: clamp01(r.peso)
+  }));
 
-      // Render canvas -> PNG (dataURL)
-      const pieUrl  = await renderPiePng({ width: 520, height: 260, slices, title: 'Asignación objetivo' });
-      const barsUrl = await renderBarsPng({ width: 520, height: 260, data: bars, title: 'Top regiones por peso' });
+  // --- NUEVO: pesos reales por clase (a partir del portfolio)
+  const sumClass = (cls) => portfolio
+    .filter(p => p.clase === cls)
+    .reduce((a,p)=> a + (Number(p.weight)||0), 0);
 
-      // Empotrar imágenes en PDF
-      const pieBytes  = await (await fetch(pieUrl)).arrayBuffer();
-      const barsBytes = await (await fetch(barsUrl)).arrayBuffer();
-      const pieImg  = await pdf.embedPng(pieBytes);
-      const barsImg = await pdf.embedPng(barsBytes);
+  const actualEquity = clamp01(sumClass('equity'));
+  const actualBond   = clamp01(sumClass('bond'));
+  const actualCash   = clamp01(sumClass('cash'));
 
-      // Dibujo en página
-      const imgW = 520, imgH = 260;
-      page.drawImage(pieImg,  { x: (A4.w - imgW)/2, y: A4.h - M - headerGap - imgH - 10, width: imgW, height: imgH });
-      page.drawImage(barsImg, { x: (A4.w - imgW)/2, y: footerH + 40,                    width: imgW, height: imgH });
-    }
+  // Datos agrupados objetivo vs actual
+  const grouped = [
+    { label: 'Equity', objetivo: clamp01(target?.equity ?? 0), actual: actualEquity },
+    { label: 'Bond',   objetivo: clamp01(target?.bond   ?? 0), actual: actualBond   },
+    { label: 'Cash',   objetivo: clamp01(target?.cash   ?? 0), actual: actualCash   }
+  ];
+
+  // Render canvas -> PNG (dataURL)
+  const pieUrl   = await renderPiePng({  width: 520, height: 260, slices, title: 'Asignación objetivo' });
+  const barsUrl  = await renderBarsPng({ width: 520, height: 260, data: bars, title: 'Top regiones por peso' });
+  const grpUrl   = await renderGroupedBarsPng({ width: 520, height: 260, data: grouped, title: 'Objetivo vs Actual' }); // NUEVO
+
+  // Empotrar imágenes en PDF
+  const pieBytes  = await (await fetch(pieUrl)).arrayBuffer();
+  const barsBytes = await (await fetch(barsUrl)).arrayBuffer();
+  const grpBytes  = await (await fetch(grpUrl)).arrayBuffer(); // NUEVO
+
+  const pieImg  = await pdf.embedPng(pieBytes);
+  const barsImg = await pdf.embedPng(barsBytes);
+  const grpImg  = await pdf.embedPng(grpBytes); // NUEVO
+
+  // Dibujo en página 1 de visualizaciones (tarta + regiones)
+  const imgW = 520, imgH = 260;
+  page.drawImage(pieImg,  { x: (A4.w - imgW)/2, y: A4.h - M - headerGap - imgH - 10, width: imgW, height: imgH });
+  page.drawImage(barsImg, { x: (A4.w - imgW)/2, y: footerH + 40,                    width: imgW, height: imgH });
+
+  // NUEVO: segunda página para la comparativa Objetivo vs Actual
+  pageNum++;
+  const page2 = pdf.addPage([A4.w, A4.h]);
+  drawHeader(page2, 'Visualizaciones (comparativa)', pageNum);
+  drawWatermarkDemo(page2);
+  page2.drawImage(grpImg, { x: (A4.w - imgW)/2, y: A4.h/2 - imgH/2, width: imgW, height: imgH });
+}
+
 
     // ==================== Tabla Cartera (paginada) ====================
     const rowsAll = portfolio.map((p, i) => ({
