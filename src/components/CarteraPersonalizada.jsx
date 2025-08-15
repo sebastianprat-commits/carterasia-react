@@ -28,6 +28,31 @@ export default function CarteraPersonalizada() {
     preferenciaESG: state?.preferenciaESG || 'no',
     fondosTraspasables: state?.fondosTraspasables || 'no',
   };
+  // ¿usuario premium? (pásalo en navigate/link: state: { premium: true })
+  const isPremium = state?.premium === true;
+
+  // KPIs extra para el informe
+  const kpis = useMemo(() => {
+    const tot = portfolio.reduce((a, p) => a + (Number(p.weight) || 0), 0) || 1;
+    const terW = portfolio.reduce((a, p) => a + (Number(p.ter) || 0) * (Number(p.weight) || 0), 0);
+    const nEq = portfolio.filter(p => p.clase === 'equity').length;
+    const nBd = portfolio.filter(p => p.clase === 'bond').length;
+    const nCash = portfolio.filter(p => p.clase === 'cash').length;
+    const byRegion = {};
+    for (const p of portfolio) {
+      const r = p.region || 'N/A';
+      byRegion[r] = (byRegion[r] || 0) + (Number(p.weight) || 0);
+    }
+    const topRegions = Object.entries(byRegion)
+      .sort((a,b)=>b[1]-a[1])
+      .slice(0,6)
+      .map(([r,w])=>({ region:r, peso:w }));
+
+    return {
+      terPonderado: Number((terW).toFixed(4)),
+      nEq, nBd, nCash, topRegions
+    };
+  }, [portfolio]);
 
   // 1) Universo filtrado por preferencias
   const universo = useMemo(() => {
