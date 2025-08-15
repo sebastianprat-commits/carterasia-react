@@ -699,3 +699,133 @@ function wrapText(page, text, { x, y, size = 11, font, color = rgb(0,0,0), maxWi
   });
   return yy - 14;
 }
+
+// ===== Helpers para gráficas (canvas offscreen -> PNG) =====
+async function renderPiePng({ width=520, height=260, slices=[], title='Gráfico' }) {
+  const c = document.createElement('canvas');
+  c.width = width; c.height = height;
+  const ctx = c.getContext('2d');
+
+  // fondo
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0,0,width,height);
+
+  // título
+  ctx.fillStyle = '#111827';
+  ctx.font = 'bold 16px Arial';
+  ctx.fillText(title, 12, 22);
+
+  const total = slices.reduce((a,s)=>a+(Number(s.value)||0),0) || 1;
+  const cx = 110, cy = height/2 + 8, r = Math.min(90, height/2 - 20);
+
+  // tarta
+  let start = -Math.PI/2;
+  slices.forEach(s=>{
+    const val = (Number(s.value)||0)/total;
+    const end = start + val * Math.PI*2;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,r,start,end);
+    ctx.closePath();
+    ctx.fillStyle = s.color || '#999999';
+    ctx.fill();
+    start = end;
+  });
+
+  // borde
+  ctx.strokeStyle = '#e5e7eb';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.stroke();
+
+  // leyenda
+  const legendX = 230, legendY = 50;
+  ctx.font = '13px Arial';
+  slices.forEach((s, i)=>{
+    const y = legendY + i*24;
+    ctx.fillStyle = s.color || '#999999';
+    ctx.fillRect(legendX, y-10, 14, 14);
+    ctx.fillStyle = '#111827';
+    const pct = `${Math.round((Number(s.value)||0)/total*100)}%`;
+    ctx.fillText(`${s.label || 'Item'} — ${pct}`, legendX + 20, y+2);
+  });
+
+  return c.toDataURL('image/png');
+}
+
+async function renderBarsPng({ width=520, height=260, data=[], title='Gráfico' }) {
+  const c = document.createElement('canvas');
+  c.width = width; c.height = height;
+  const ctx = c.getContext('2d');
+
+  // fondo
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0,0,width,height);
+
+  // título
+  ctx.fillStyle = '#111827';
+  ctx.font = 'bold 16px Arial';
+  ctx.fillText(title, 12, 22);
+
+  // área de gráfico
+  const padL = 60, padR = 16, padB = 40, padT = 30;
+  const gw = width - padL - padR;
+  const gh = height - padT - padB;
+  const x0 = padL, y0 = height - padB;
+
+  const maxV = Math.max(0.001, ...data.map(d=>Number(d.value)||0));
+  const barW = Math.max(12, Math.min(48, gw / Math.max(1, data.length) * 0.6));
+  const gap = Math.max(8, (gw - barW*data.length) / Math.max(1, data.length-1));
+
+  // ejes
+  ctx.strokeStyle = '#e5e7eb';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x0, y0 - gh);
+  ctx.lineTo(x0, y0);
+  ctx.lineTo(x0 + gw, y0);
+  ctx.stroke();
+
+  // ticks Y
+  ctx.fillStyle = '#6b7280';
+  ctx.font = '12px Arial';
+  for (let i=0;i<=4;i++){
+    const y = y0 - (gh * i/4);
+    const val = `${Math.round((maxV * i/4)*100)}%`;
+    ctx.fillText(val, 8, y+4);
+    ctx.strokeStyle = '#f3f4f6';
+    ctx.beginPath();
+    ctx.moveTo(x0, y);
+    ctx.lineTo(x0 + gw, y);
+    ctx.stroke();
+  }
+
+  // barras
+  let x = x0;
+  data.forEach((d, idx)=>{
+    const v = (Number(d.value)||0) / maxV;
+    const h = gh * v;
+    ctx.fillStyle = '#2563eb';
+    ctx.fillRect(x, y0 - h, barW, h);
+
+    // etiqueta X
+    ctx.save();
+    ctx.translate(x + barW/2, y0 + 14);
+    ctx.rotate(-Math.PI/12);
+    ctx.fillStyle = '#374151';
+    ctx.font = '12px Arial';
+    const label = String(d.label ?? `#${idx+1}`);
+    ctx.fillText(label.length>14? label.slice(0,12)+'…' : label, -barW, 0);
+    ctx.restore();
+
+    // valor encima
+    ctx.fillStyle = '#111827';
+    ctx.font = '12px Arial';
+    ctx.fillText(`${Math.round((Number(d.value)||0)*100)}%`, x, y0 - h - 4);
+
+    x += barW + gap;
+  });
+
+  return c.toDataURL('image/png');
+}
