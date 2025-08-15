@@ -31,29 +31,6 @@ export default function CarteraPersonalizada() {
   // ¿usuario premium? (pásalo en navigate/link: state: { premium: true })
   const isPremium = state?.premium === true;
 
-  // KPIs extra para el informe
-  const kpis = useMemo(() => {
-    const tot = portfolio.reduce((a, p) => a + (Number(p.weight) || 0), 0) || 1;
-    const terW = portfolio.reduce((a, p) => a + (Number(p.ter) || 0) * (Number(p.weight) || 0), 0);
-    const nEq = portfolio.filter(p => p.clase === 'equity').length;
-    const nBd = portfolio.filter(p => p.clase === 'bond').length;
-    const nCash = portfolio.filter(p => p.clase === 'cash').length;
-    const byRegion = {};
-    for (const p of portfolio) {
-      const r = p.region || 'N/A';
-      byRegion[r] = (byRegion[r] || 0) + (Number(p.weight) || 0);
-    }
-    const topRegions = Object.entries(byRegion)
-      .sort((a,b)=>b[1]-a[1])
-      .slice(0,6)
-      .map(([r,w])=>({ region:r, peso:w }));
-
-    return {
-      terPonderado: Number((terW).toFixed(4)),
-      nEq, nBd, nCash, topRegions
-    };
-  }, [portfolio]);
-
   // 1) Universo filtrado por preferencias
   const universo = useMemo(() => {
     const esgWanted =
@@ -133,8 +110,30 @@ export default function CarteraPersonalizada() {
     return Math.round(sum * 1000) / 1000;
   }, [portfolio]);
 
-  // 5) PDF (descarga local) — versión con paginado dinámico
-  const handleDownloadPDF = async () => {
+  // 4.1) KPIs extra para el informe (se calculan DESPUÉS de portfolio)
+  const kpis = useMemo(() => {
+    const terW = portfolio.reduce((a, p) => a + (Number(p.ter) || 0) * (Number(p.weight) || 0), 0);
+    const nEq = portfolio.filter(p => p.clase === 'equity').length;
+    const nBd = portfolio.filter(p => p.clase === 'bond').length;
+    const nCash = portfolio.filter(p => p.clase === 'cash').length;
+    const byRegion = {};
+    for (const p of portfolio) {
+      const r = p.region || 'N/A';
+      byRegion[r] = (byRegion[r] || 0) + (Number(p.weight) || 0);
+    }
+    const topRegions = Object.entries(byRegion)
+      .sort((a,b)=>b[1]-a[1])
+      .slice(0,6)
+      .map(([r,w])=>({ region:r, peso:w }));
+
+    return {
+      terPonderado: Number((terW).toFixed(4)),
+      nEq, nBd, nCash, topRegions
+    };
+  }, [portfolio]);
+
+  // 5) PDF WOW (multi-sección, paginado, DEMO/Premium)
+  const handleDownloadPDF = async ({ demo = false } = {}) => {
     try {
       if (!perfil || portfolio.length === 0) {
         alert('No hay datos para generar el PDF.');
@@ -145,7 +144,7 @@ export default function CarteraPersonalizada() {
       const A4 = { w: 595.28, h: 841.89 };
       const M = 40;
       const rowH = 14;
-      const headerGap = 36; // espacio bajo la cabecera
+      const headerGap = 36;
       const footerH = 30;
 
       const font = await pdf.embedFont(StandardFonts.Helvetica);
@@ -156,56 +155,86 @@ export default function CarteraPersonalizada() {
           x: M, y: A4.h - M + 6, size: 10, font: fontB, color: rgb(0.05, 0.25, 0.65)
         });
         page.drawText(title, { x: M, y: A4.h - M - 8, size: 14, font: fontB });
-        page.drawLine({
-          start: { x: M, y: A4.h - M - 14 },
-          end: { x: A4.w - M, y: A4.h - M - 14 },
-          thickness: 1, color: rgb(0.8, 0.8, 0.8)
-        });
-        // Pie
-        page.drawLine({
-          start: { x: M, y: footerH },
-          end: { x: A4.w - M, y: footerH },
-          thickness: 1, color: rgb(0.85, 0.85, 0.85)
-        });
+        page.drawLine({ start: { x: M, y: A4.h - M - 14 }, end: { x: A4.w - M, y: A4.h - M - 14 }, thickness: 1, color: rgb(0.8, 0.8, 0.8) });
+        page.drawLine({ start: { x: M, y: footerH }, end: { x: A4.w - M, y: footerH }, thickness: 1, color: rgb(0.85, 0.85, 0.85) });
         page.drawText(`Página ${pageNum}${totalHint ? ` de ${totalHint}` : ''}`, {
           x: A4.w - M - 120, y: footerH - 16, size: 9, font: fontB, color: rgb(0.35, 0.35, 0.35)
         });
       };
 
-      // ------- PORTADA -------
-      let cover = pdf.addPage([A4.w, A4.h]);
-      drawHeader(cover, 'Portada', 1);
-      let y = A4.h - M - headerGap;
+      const drawWatermarkDemo = (page) => {
+        if (!demo) return;
+        page.drawText('DEMO', {
+          x: A4.w / 2 - 80,
+          y: A4.h / 2,
+          size: 80,
+          font: fontB,
+          color: rgb(0.92, 0.92, 0.92),
+          rotate: { type: 'degrees', angle: 30 }
+        });
+      };
 
-      const t = (txt, size = 11, bold = false, color = rgb(0, 0, 0)) => {
+      const drawKV = (page, x, y, label, value) => {
+        page.drawText(label, { x, y, size: 10, font: font, color: rgb(0.35,0.35,0.35) });
+        page.drawText(String(value), { x, y: y - 14, size: 12, font: fontB });
+      };
+
+      const drawSectionTitle = (page, title, y0) => {
+        page.drawText(title, { x: M, y: y0, size: 13, font: fontB });
+        page.drawLine({ start: { x: M, y: y0 - 6 }, end: { x: A4.w - M, y: y0 - 6 }, thickness: 1, color: rgb(0.85,0.85,0.85) });
+      };
+
+      const drawTableHeader = (page, y0, cols) => {
+        cols.forEach(c =>
+          page.drawText(c.label, { x: c.x, y: y0, size: 11, font: fontB, color: rgb(0.1, 0.1, 0.1) })
+        );
+        page.drawLine({ start: { x: M, y: y0 - 8 }, end: { x: A4.w - M, y: y0 - 8 }, thickness: 1, color: rgb(0.85, 0.85, 0.85) });
+        return y0 - 14;
+      };
+
+      const textWidth = (t, size = 11) => font.widthOfTextAtSize(String(t), size);
+
+      // ==================== Portada ====================
+      let pageNum = 1;
+      let cover = pdf.addPage([A4.w, A4.h]);
+      drawHeader(cover, 'Portada', pageNum);
+      drawWatermarkDemo(cover);
+
+      let y = A4.h - M - headerGap;
+      const T = (txt, size = 11, bold = false, color = rgb(0, 0, 0)) => {
         cover.drawText(String(txt), { x: M, y, size, font: bold ? fontB : font, color });
         y -= size + 4;
       };
+      T(`Fecha: ${new Date().toLocaleString()}`, 10, false, rgb(0.25, 0.25, 0.25));
+      if (nombre) T(`Usuario: ${nombre}`);
+      T(`Perfil inversor: ${String(perfil).toUpperCase()}`, 12, true, rgb(0.05, 0.25, 0.65));
 
-      t(`Fecha: ${new Date().toLocaleString()}`, 10, false, rgb(0.25, 0.25, 0.25));
-      if (nombre) t(`Usuario: ${nombre}`);
-      t(`Perfil inversor: ${String(perfil).toUpperCase()}`, 12, true, rgb(0.05, 0.25, 0.65));
-      t(`Asignación objetivo → Equity ${pct(target?.equity)}, Bond ${pct(target?.bond)}, Cash ${pct(target?.cash)}`);
-      t(`Volatilidad estimada (aprox): ~${volEst}%`);
-
-      const bullet = (s) => { cover.drawText(`• ${s}`, { x: M, y, size: 11, font }); y -= 14; };
+      // KPIs portada
       y -= 6;
-      cover.drawText('Metodología (resumen):', { x: M, y, size: 12, font: fontB }); y -= 16;
+      drawSectionTitle(cover, 'Resumen ejecutivo', y); y -= 24;
+      drawKV(cover, M, y, 'Asignación objetivo', `Equity ${pct(target?.equity)} · Bond ${pct(target?.bond)} · Cash ${pct(target?.cash)}`);
+      drawKV(cover, M + 260, y, 'Volatilidad estimada', `~${volEst}%`);
+      y -= 36;
+      drawKV(cover, M, y, 'TER ponderado', `${(kpis.terPonderado * 100).toFixed(2)}%`);
+      drawKV(cover, M + 260, y, 'Nº posiciones', portfolio.length);
+      y -= 44;
+
+      // Metodología breve
+      drawSectionTitle(cover, 'Metodología (resumen)', y); y -= 20;
       [
-        'Universo UCITS curado, costes bajos y clases sencillas.',
+        'Universo UCITS curado, foco en costes bajos y liquidez.',
         'Scoring interno: momentum 12m, coste (TER) y penalización por volatilidad.',
-        'Asignación estratégica por perfil y límites por clase/subclase/región.',
-        'Rebalanceo trimestral o por desviaciones significativas.'
-      ].forEach(bullet);
+        'Asignación estratégica por perfil con límites por clase/subclase/región.',
+        'Rebalanceo trimestral o ante desviaciones significativas.'
+      ].forEach(s => { cover.drawText(`• ${s}`, { x: M, y, size: 11, font }); y -= 14; });
 
       y -= 8;
-      cover.drawText(
-        'Aviso legal: Informe educativo. No constituye recomendación personalizada.',
-        { x: M, y, size: 9, font, color: rgb(0.35, 0.35, 0.35) }
-      );
+      cover.drawText('Aviso: Informe educativo. No constituye recomendación personalizada.', {
+        x: M, y, size: 9, font, color: rgb(0.35, 0.35, 0.35)
+      });
 
-      // ------- TABLA PAGINADA (dinámica) -------
-      const rows = portfolio.map((p, i) => ({
+      // ==================== Tabla Cartera (paginada) ====================
+      const rowsAll = portfolio.map((p, i) => ({
         pos: String(i + 1).padStart(2, '0'),
         ticker: p.ticker || '',
         nombre: p.nombre || '',
@@ -215,7 +244,9 @@ export default function CarteraPersonalizada() {
         peso: pct(p.weight)
       }));
 
-      const cols = [
+      const rows = demo ? rowsAll.slice(0, 3) : rowsAll;
+
+      const colsMain = [
         { key: 'pos',    x: M,       w: 26,  align: 'left',  label: 'Pos' },
         { key: 'ticker', x: M + 28,  w: 58,  align: 'left',  label: 'Ticker' },
         { key: 'nombre', x: M + 90,  w: 232, align: 'left',  label: 'Nombre' },
@@ -225,58 +256,189 @@ export default function CarteraPersonalizada() {
         { key: 'peso',   x: M + 506, w: 54,  align: 'right', label: 'Peso' }
       ];
 
-      const drawTableHeader = (page) => {
-        let yy = A4.h - M - headerGap;
-        cols.forEach(c =>
-          page.drawText(c.label, { x: c.x, y: yy, size: 11, font: fontB, color: rgb(0.1, 0.1, 0.1) })
-        );
-        yy -= 8;
-        page.drawLine({ start: { x: M, y: yy }, end: { x: A4.w - M, y: yy }, thickness: 1, color: rgb(0.85, 0.85, 0.85) });
-        return yy - 6;
+      const bottomLimit = footerH + 16;
+      const drawTablePage = (title, list) => {
+        pageNum++;
+        const page = pdf.addPage([A4.w, A4.h]);
+        drawHeader(page, title, pageNum);
+        drawWatermarkDemo(page);
+        let yy = drawTableHeader(page, A4.h - M - headerGap, colsMain);
+        for (const r of list) {
+          if (yy - rowH < bottomLimit) {
+            // nueva página
+            pageNum++;
+            const page2 = pdf.addPage([A4.w, A4.h]);
+            drawHeader(page2, `${title} (cont.)`, pageNum);
+            drawWatermarkDemo(page2);
+            yy = drawTableHeader(page2, A4.h - M - headerGap, colsMain);
+            const name = r.nombre.length > 36 ? `${r.nombre.slice(0, 34)}…` : r.nombre;
+            colsMain.forEach(c => {
+              const val = c.key === 'nombre' ? name : r[c.key];
+              const tw = font.widthOfTextAtSize(String(val), 11);
+              const x = c.align === 'right' ? c.x + c.w - tw : c.x;
+              page2.drawText(String(val), { x, y: yy, size: 11, font });
+            });
+            yy -= rowH;
+            continue;
+          }
+          const name = r.nombre.length > 36 ? `${r.nombre.slice(0, 34)}…` : r.nombre;
+          colsMain.forEach(c => {
+            const val = c.key === 'nombre' ? name : r[c.key];
+            const tw = font.widthOfTextAtSize(String(val), 11);
+            const x = c.align === 'right' ? c.x + c.w - tw : c.x;
+            page.drawText(String(val), { x, y: yy, size: 11, font });
+          });
+          yy -= rowH;
+        }
       };
 
-      let pageNum = 2; // portada fue 1
-      let page = pdf.addPage([A4.w, A4.h]);
-      drawHeader(page, 'Cartera sugerida', pageNum);
-      y = drawTableHeader(page);
+      drawTablePage('Cartera sugerida', rows);
 
-      const bottomLimit = footerH + 16; // altura mínima util
+      // ==================== Detalle Equity ====================
+      const eqRows = (demo ? portfolio.slice(0, 3) : portfolio)
+        .filter(p => p.clase === 'equity')
+        .map((p, i) => ({
+          pos: String(i + 1).padStart(2, '0'),
+          ticker: p.ticker || '',
+          nombre: p.nombre || '',
+          subclase: p.subclase || '',
+          region: p.region || '',
+          ter: Number.isFinite(Number(p.ter)) ? `${(Number(p.ter) * 100).toFixed(2)}%` : '-',
+          peso: pct(p.weight)
+        }));
 
-      for (const r of rows) {
-        // salto de página si no cabe
-        if (y - rowH < bottomLimit) {
-          pageNum++;
-          page = pdf.addPage([A4.w, A4.h]);
-          drawHeader(page, 'Cartera sugerida (cont.)', pageNum);
-          y = drawTableHeader(page);
+      const colsEq = [
+        { key: 'pos',     x: M,       w: 26,  align: 'left',  label: 'Pos' },
+        { key: 'ticker',  x: M + 28,  w: 58,  align: 'left',  label: 'Ticker' },
+        { key: 'nombre',  x: M + 90,  w: 210, align: 'left',  label: 'Nombre' },
+        { key: 'subclase',x: M + 304, w: 102, align: 'left',  label: 'Subclase' },
+        { key: 'region',  x: M + 410, w: 60,  align: 'left',  label: 'Reg' },
+        { key: 'ter',     x: M + 474, w: 44,  align: 'right', label: 'TER' },
+        { key: 'peso',    x: M + 522, w: 38,  align: 'right', label: 'Peso' }
+      ];
+
+      const drawTableGeneric = (title, cols, list) => {
+        pageNum++;
+        let page = pdf.addPage([A4.w, A4.h]);
+        drawHeader(page, title, pageNum);
+        drawWatermarkDemo(page);
+        let yy = drawTableHeader(page, A4.h - M - headerGap, cols);
+        for (const r of list) {
+          if (yy - rowH < bottomLimit) {
+            pageNum++;
+            page = pdf.addPage([A4.w, A4.h]);
+            drawHeader(page, `${title} (cont.)`, pageNum);
+            drawWatermarkDemo(page);
+            yy = drawTableHeader(page, A4.h - M - headerGap, cols);
+          }
+          cols.forEach(c => {
+            const val = String(r[c.key] ?? '');
+            const tw = font.widthOfTextAtSize(val, 11);
+            const x = c.align === 'right' ? c.x + c.w - tw : c.x;
+            page.drawText(val, { x, y: yy, size: 11, font });
+          });
+          yy -= rowH;
         }
+      };
 
-        const name = r.nombre.length > 36 ? `${r.nombre.slice(0, 34)}…` : r.nombre;
-        const values = {
-          pos: r.pos, ticker: r.ticker, nombre: name, clase: r.clase, region: r.region, ter: r.ter, peso: r.peso
-        };
+      if (eqRows.length) drawTableGeneric('Detalle renta variable', colsEq, eqRows);
 
-        cols.forEach(c => {
-          const val = values[c.key];
-          const txW = font.widthOfTextAtSize(String(val), 11);
-          const x = c.align === 'right' ? c.x + c.w - txW : c.x;
-          page.drawText(String(val), { x, y, size: 11, font });
+      // ==================== Detalle Bonos ====================
+      const bdRows = (demo ? portfolio.slice(0, 3) : portfolio)
+        .filter(p => p.clase === 'bond')
+        .map((p, i) => ({
+          pos: String(i + 1).padStart(2, '0'),
+          ticker: p.ticker || '',
+          nombre: p.nombre || '',
+          subclase: p.subclase || '',
+          region: p.region || '',
+          ter: Number.isFinite(Number(p.ter)) ? `${(Number(p.ter) * 100).toFixed(2)}%` : '-',
+          peso: pct(p.weight)
+        }));
+
+      if (bdRows.length) drawTableGeneric('Detalle renta fija', colsEq, bdRows);
+
+      // ==================== Top regiones ====================
+      {
+        pageNum++;
+        const page = pdf.addPage([A4.w, A4.h]);
+        drawHeader(page, 'Exposición por regiones (top)', pageNum);
+        drawWatermarkDemo(page);
+        let yy = A4.h - M - headerGap;
+
+        kpis.topRegions.forEach(({ region, peso }) => {
+          page.drawText(region, { x: M, y: yy, size: 11, font: fontB });
+          const barW = (A4.w - M * 2 - 140) * clamp01(peso);
+          page.drawText(pct(peso), { x: A4.w - M - 60, y: yy, size: 11, font });
+          // barra
+          page.drawLine({ start: { x: M + 120, y: yy + 4 }, end: { x: M + 120 + barW, y: yy + 4 }, thickness: 6, color: rgb(0.16, 0.45, 0.9) });
+          yy -= 24;
         });
-        y -= rowH;
       }
 
-      // Control: cuántas páginas hay realmente
-      // eslint-disable-next-line no-console
-      console.log('PDF - páginas generadas:', pdf.getPageCount?.() ?? '(sin API)');
+      // ==================== Metodología & rebalanceo ====================
+      {
+        pageNum++;
+        const page = pdf.addPage([A4.w, A4.h]);
+        drawHeader(page, 'Metodología y rebalanceo', pageNum);
+        drawWatermarkDemo(page);
+        let yy = A4.h - M - headerGap;
 
+        const bullet = (s) => { page.drawText(`• ${s}`, { x: M, y: yy, size: 11, font }); yy -= 16; };
+        [
+          'Selección: universe UCITS, costes bajos, liquidez y réplica transparente.',
+          'Score: momentum 12m/6m, TER, volatilidad 36m (si disponible).',
+          'Límites: concentración por activo, por subclase y por región.',
+          'Rebalanceo: trimestral o desvío >25% del peso objetivo por bloque.',
+          'Control de riesgo: asignación por perfil y seguimiento de drawdowns.'
+        ].forEach(bullet);
+      }
+
+      // ==================== Riesgos clave ====================
+      {
+        pageNum++;
+        const page = pdf.addPage([A4.w, A4.h]);
+        drawHeader(page, 'Riesgos clave (resumen)', pageNum);
+        drawWatermarkDemo(page);
+        let yy = A4.h - M - headerGap;
+
+        const risk = (name, desc, prob, imp, mit) => {
+          page.drawText(name, { x: M, y: yy, size: 12, font: fontB }); yy -= 14;
+          page.drawText(desc, { x: M, y: yy, size: 11, font }); yy -= 14;
+          page.drawText(`Prob.: ${prob} · Impacto: ${imp} · Mitigación: ${mit}`, { x: M, y: yy, size: 11, font, color: rgb(0.25,0.25,0.25) }); yy -= 18;
+        };
+
+        risk('Rebrote de inflación', 'Repunte de IPC que penaliza duraciones largas y múltiplos de equity.', 'Media', 'Alta', 'Duración diversificada, sesgo IG, cash táctico.');
+        risk('Desaceleración global', 'Caída de beneficios y ciclo industrial débil.', 'Media', 'Media/Alta', 'Sesgo a calidad, defensivos y grado de inversión.');
+        risk('Geopolítica', 'Tensiones en rutas y materias primas elevan volatilidad.', 'Baja/Media', 'Media', 'Diversificación regional y gestión de divisa.');
+      }
+
+      // ==================== Glosario & Avisos ====================
+      {
+        pageNum++;
+        const page = pdf.addPage([A4.w, A4.h]);
+        drawHeader(page, 'Glosario & Avisos', pageNum);
+        drawWatermarkDemo(page);
+        let yy = A4.h - M - headerGap;
+
+        const line = (s, size = 11, bold = false) => { page.drawText(s, { x: M, y: yy, size, font: bold ? fontB : font }); yy -= size + 6; };
+
+        line('TER (Total Expense Ratio): coste anual del vehículo sobre patrimonio.', 11);
+        line('Volatilidad: oscilación histórica del precio; no predice resultados futuros.', 11);
+        line('Momentum 12m: rendimiento a 12 meses usado como señal de tendencia.', 11);
+        yy -= 8;
+        line('Aviso legal', 12, true);
+        line('Este documento es informativo y no constituye recomendación personalizada ni oferta de compra/venta.', 10);
+        line('La inversión conlleva riesgos, incluido la posible pérdida del capital invertido.', 10);
+      }
+
+      // Guardar y descargar
       const bytes = await pdf.save();
       const blob = new Blob([bytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
-
-      // descarga fiable
       const a = document.createElement('a');
       a.href = url;
-      a.download = `cartera_${perfil}.pdf`;
+      a.download = demo ? `cartera_${perfil}_DEMO.pdf` : `cartera_${perfil}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -345,6 +507,9 @@ export default function CarteraPersonalizada() {
     );
   }
 
+  // Filas visibles en UI (teaser si no es premium)
+  const visibleRows = isPremium ? portfolio : portfolio.slice(0, 3);
+
   return (
     <div className="max-w-3xl mx-auto mt-10 p-6 bg-white dark:bg-gray-900 rounded-xl shadow-md">
       <h2 className="text-2xl font-bold mb-4">
@@ -366,7 +531,7 @@ export default function CarteraPersonalizada() {
             </tr>
           </thead>
           <tbody>
-            {portfolio.map((p, i) => (
+            {visibleRows.map((p, i) => (
               <tr key={p.isin || p.ticker || i} className="border-t dark:border-gray-700">
                 <Td>{String(i + 1).padStart(2, '0')}</Td>
                 <Td>{p.ticker}</Td>
@@ -378,23 +543,42 @@ export default function CarteraPersonalizada() {
               </tr>
             ))}
           </tbody>
+          {!isPremium && portfolio.length > 3 && (
+            <tfoot>
+              <tr className="border-t dark:border-gray-700">
+                <td colSpan={7} className="p-3 text-center text-gray-500">
+                  {portfolio.length - 3} posiciones más — <span className="font-medium">Solo en Premium</span>
+                </td>
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
 
-      <div className="mt-6 flex gap-3">
-        <button
-          onClick={handleVerInformeDemo}
-          className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700"
-        >
-          Ver informe DEMO (Premium)
-        </button>
-
-        <button
-          onClick={handleDownloadPDF}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          Descargar PDF rápido
-        </button>
+      <div className="mt-6 flex gap-3 flex-wrap">
+        {!isPremium ? (
+          <>
+            <button
+              onClick={() => handleDownloadPDF({ demo: true })}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              Descargar PDF (DEMO)
+            </button>
+            <button
+              onClick={() => alert('Función Premium: actívala para ver la cartera completa y el informe completo.')}
+              className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700"
+            >
+              Ver informe completo (Premium)
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => handleDownloadPDF({ demo: false })}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Descargar informe completo (PDF)
+          </button>
+        )}
 
         <Link to="/" className="text-blue-600 underline self-center">Volver al inicio</Link>
       </div>
@@ -462,7 +646,7 @@ function diversifyBonds(bonds) {
   return dedup.slice(0, 4);
 }
 
-// Helper de texto multilínea (usado en portada)
+// Helper de texto multilínea (usado en portada si lo necesitas)
 function wrapText(page, text, { x, y, size = 11, font, color = rgb(0,0,0), maxWidth = 515 }) {
   const words = String(text).split(' ');
   let line = '';
