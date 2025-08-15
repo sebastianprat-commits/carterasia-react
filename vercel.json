@@ -6,7 +6,7 @@
   "functions": {
     "api/report.js": {
       "runtime": "nodejs20.x",
-      "memory": 1024,
+      "memory": 1536,
       "maxDuration": 60
     }
   }
